@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  /* Core Colors - Refined Semantics */
+  --color-citrus-yellow: #FFFF00;   /* Pure Yellow */
+  --color-neon-fuchsia: #FF00FF;    /* Corrected name for #FF00FF */
+  --color-electric-cyan: #00FFFF;   /* Corrected name for #00FFFF */
+  --color-base-bg: #FFFFFF;
+  --color-black: #000000;
+
+  /* Shadows - Modular System */
+  --shadow-brutal: 4px 4px 0px #000;
+  --shadow-brutal-sm: 2px 2px 0px #000;
+  --shadow-brutal-lg: 8px 8px 0px #000;
+  --shadow-none: 0px 0px 0px #000;
+
+  /* Spacing & Borders */
+  --border-width-brutal: 3px;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-black antialiased;
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+
+  /* Global Scrollbar Branding */
+  ::-webkit-scrollbar {
+    @apply w-3;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-white border-l-2 border-black;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-black border-2 border-white;
+  }
+}
+
+@layer components {
+  /* Semantic Utilities for Neo-Brutalism */
+  .brutal-card {
+    @apply bg-white border-[var(--border-width-brutal)] border-black rounded-2xl shadow-brutal transition-all duration-200;
+  }
+
+  .brutal-btn {
+    @apply border-[var(--border-width-brutal)] border-black rounded-2xl shadow-brutal font-black uppercase px-6 py-3 
+           transition-all duration-200 cursor-pointer text-center
+           active:shadow-none active:translate-x-1 active:translate-y-1 
+           disabled:opacity-50 disabled:cursor-not-allowed 
+           focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black focus-visible:ring-offset-2;
+  }
+
+  .brutal-input {
+    @apply border-[var(--border-width-brutal)] border-black rounded-xl shadow-brutal-sm px-4 py-3 
+           focus:outline-none focus:ring-4 focus:ring-[var(--color-citrus-yellow)] 
+           transition-all bg-white font-bold placeholder:text-gray-400;
+  }
+
+  .brutal-heading {
+    @apply font-black uppercase tracking-tighter leading-tight;
+  }
+
+  /* Accessibility Utilities */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black focus-visible:ring-offset-2;
+  }
+
+  .text-shadow-brutal {
+    text-shadow: 2px 2px 0px rgba(0,0,0,1);
+  }
+}
