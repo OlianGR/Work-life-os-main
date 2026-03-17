@@ -171,26 +171,26 @@ function EditDayModal({ date, onClose }: { date: Date, onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="brutal-card w-full max-w-md bg-white overflow-hidden flex flex-col"
+        initial={{ opacity: 0, y: 50, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 50, scale: 0.95 }}
+        className="brutal-card w-full sm:max-w-md bg-white overflow-hidden flex flex-col h-[90vh] sm:h-auto max-h-screen sm:max-h-[85vh] rounded-t-3xl sm:rounded-2xl"
       >
-        <div className="p-6 border-b-[3px] border-black flex justify-between items-center bg-white">
+        <div className="p-4 sm:p-6 border-b-[3px] border-black flex justify-between items-center bg-white shrink-0">
           <div>
-            <h2 className="font-black text-3xl uppercase tracking-tighter">{format(date, 'd MMM, yyyy').toUpperCase()}</h2>
-            <p className="font-mono text-xs font-black text-gray-500 uppercase">{format(date, 'EEEE').toUpperCase()}</p>
+            <h2 className="font-black text-2xl sm:text-3xl uppercase tracking-tighter">{format(date, 'd MMM, yyyy').toUpperCase()}</h2>
+            <p className="font-mono text-[10px] sm:text-xs font-black text-gray-500 uppercase">{format(date, 'EEEE').toUpperCase()}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-[var(--color-citrus-yellow)] rounded-xl transition-all border-[3px] border-black shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none bg-white">
-            <X className="w-6 h-6" />
+          <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-[var(--color-citrus-yellow)] rounded-xl transition-all border-[2px] sm:border-[3px] border-black shadow-brutal-xs sm:shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none bg-white">
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
-        <div className="p-8 space-y-8 flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-8 space-y-6 flex-1 overflow-y-auto overflow-x-hidden min-h-0 pb-20 sm:pb-8">
           <div>
-            <label className="font-mono text-xs font-black uppercase tracking-widest block mb-3">Tipo de Registro</label>
+            <label className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-widest block mb-2 sm:mb-3">Tipo de Registro</label>
             <div className="flex rounded-2xl border-[3px] border-black overflow-hidden shadow-brutal-sm bg-black gap-[3px]">
               {[
                 { id: 'worked', label: 'TRABAJO' },
@@ -256,16 +256,16 @@ function EditDayModal({ date, onClose }: { date: Date, onClose: () => void }) {
           </div>
         </div>
 
-        <div className="p-8 border-t-[3px] border-black bg-white flex gap-4">
+        <div className="p-4 sm:p-8 border-t-[3px] border-black bg-white flex flex-col sm:flex-row gap-3 sm:gap-4 z-20">
           {existingLog && (
-            <button onClick={handleDelete} className="brutal-btn bg-white text-black px-8 py-4 flex-1">
+            <button onClick={handleDelete} className="brutal-btn bg-white text-black px-4 sm:px-8 py-3 sm:py-4 w-full sm:flex-1">
               BORRAR
             </button>
           )}
-          <button onClick={handleSave} className="brutal-btn bg-[var(--color-neon-fuchsia)] text-white px-8 py-4 flex-[2] flex justify-between items-center shadow-brutal hover:shadow-none translate-x-[-4px] translate-y-[-4px] hover:translate-x-0 hover:translate-y-0">
-            <span className="font-black uppercase tracking-tighter text-lg">Guardar Registro</span>
+          <button onClick={handleSave} className={`brutal-btn bg-[var(--color-neon-fuchsia)] text-white px-4 sm:px-8 py-3 sm:py-4 w-full flex justify-between items-center shadow-brutal hover:shadow-none translate-x-[-4px] translate-y-[-4px] hover:translate-x-0 hover:translate-y-0 ${existingLog ? 'sm:flex-[2]' : ''}`}>
+            <span className="font-black uppercase tracking-tighter text-sm sm:text-lg">Guardar <span className="hidden sm:inline">Registro</span></span>
             {(type === 'worked' || (type === 'holiday' && isWorkedHoliday)) && profileId && (
-              <span className="bg-black/30 px-3 py-1 rounded-lg text-xs font-black">{profiles.find(p => p.id === profileId)?.rate.toFixed(2)} €</span>
+              <span className="bg-black/30 px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-black">{profiles.find(p => p.id === profileId)?.rate.toFixed(2)} €</span>
             )}
           </button>
         </div>

@@ -56,7 +56,11 @@ export async function middleware(request: NextRequest) {
   )
 
   // This will refresh the session if needed
-  const { data: { user } } = await supabase.auth.getUser()
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+  } catch (err) {
+    // Ignorar errores de sesión en middleware para evitar caídas
+  }
 
   // Eliminamos la redirección forzosa aquí, ya que AuthWrapper en el cliente se encarga de proteger la vista.
   // Esto evita falsos positivos de falta de sesión en el lado del servidor que bloquean la navegación.

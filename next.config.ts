@@ -1,7 +1,9 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // ... existing config (left unmodified except for headers, which was already replaced in another operation)
   async headers() {
     return [
       {
@@ -25,7 +27,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://hcgnkvaiiqvmpqjgzrdv.supabase.co wss://hcgnkvaiiqvmpqjgzrdv.supabase.co https://api.groq.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://hcgnkvaiiqvmpqjgzrdv.supabase.co wss://hcgnkvaiiqvmpqjgzrdv.supabase.co https://api.groq.com *.sentry.io;",
           },
         ],
       },
@@ -62,4 +64,20 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Make sure adding Sentry options is the last code to run before exporting
+export default withSentryConfig(nextConfig, {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options
+  
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+
+  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+  tunnelRoute: "/monitoring",
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+});

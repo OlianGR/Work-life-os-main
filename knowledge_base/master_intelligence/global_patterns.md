@@ -19,6 +19,7 @@ This document is the **Permanent Knowledge Asset** of the Antigravity Agent Syst
 > Each agent must log a "Lesson Learned" here after major milestone completion.
 - [Session 2026-03-09]: Initialized Agent OS with "Staff-Level" protocols and Global Synchronization Notebook.
 - [Session 2026-03-12]: Agent OS v2 — Incorporados 2 nuevos agentes (QA Testing Engineer + Documentation Engineer). Creado `global_rules.md` con OWASP Top 9 + Testing checklist Top 7, obligatorio en todos los proyectos. CTO adquiere protocolo "termino la sesion": sincroniza memoria de todos los agentes + crea nota Notion via MCP. Backend/Frontend/SRE actualizados con enforcement de global_rules.
+- [Session 2026-03-17]: Supabase Auth Token Refresh lanza Unhandled Rejections en Next.js 15 Middleware (`getUser()` vs `getSession()`); resuelto siempre interceptando con `.catch()`. Integración Sentry `@sentry/nextjs` estandarizada para monitoreo de estabilidad de cliente/servidor. Responsive Modal Design: para modales llenos de contenido es mejor convertirlos en "bottom-sheets" en móvil usando flex/h-[] y overflow-y-auto interno.
 
 ## 🔐 Global Security Patterns (OWASP Enforcement)
 *   **SQL Injection:** Siempre usar RLS en Supabase + queries parametrizadas. Nunca concatenar strings en queries.

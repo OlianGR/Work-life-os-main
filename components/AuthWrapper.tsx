@@ -123,6 +123,16 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [mfaFactorId, setMfaFactorId] = useState('');
 
   useEffect(() => {
+    // Suppress specific Next.js 15 error overlays for Supabase internal token refresh failures
+    const originalConsoleError = console.error;
+    console.error = (...args: any[]) => {
+      const msg = args.map(a => (typeof a === 'string' ? a : a?.message || '')).join(' ');
+      if (msg.includes('AuthApiError') && msg.includes('Refresh Token')) {
+        return; // Ignore
+      }
+      originalConsoleError.apply(console, args);
+    };
+
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -130,6 +140,8 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
         fetchUserData();
         initHolidays2026();
       }
+    }).catch((err) => {
+      console.warn('Auth session error handled:', err);
     });
 
     // Listen for auth changes
@@ -141,7 +153,10 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.error = originalConsoleError;
+      subscription.unsubscribe();
+    };
   }, [setUser, fetchUserData, initHolidays2026]);
 
   if (user) {

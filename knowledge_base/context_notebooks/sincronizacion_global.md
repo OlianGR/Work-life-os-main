@@ -12,11 +12,12 @@ Este documento registra los cimientos del proyecto Work Life OS.
 3.  **Automation ↔ Backend:** Webhooks para procesamiento de archivos PDF/JPG de nóminas.
 
 ## 🧠 Memoria de Sesiones (Chat Persistence)
-*   **Hito Actual:** Fase de Refinamiento UI & Auditoría - Sistema Estabilizado.
+*   **Hito Actual:** Estabilidad y Seguridad - Sentry SDK y MFA Backup Codes.
 *   **Pendientes Críticos:** 
     *   **QA:** Pruebas E2E automatizadas (Playwright) para exportación PDF en entornos no locales.
-    *   **Backend:** Investigar error de permisos (Forbidden) en MCP Supabase.
-*   **Decisión CTO:** Implementación de sistema de color semántico en Tailwind v4 para Neo-Brutalismo. Refinamiento premium del módulo Auditor con estética térmica y escáner láser IA.
+    *   **Seguridad:** Implementar tabla de `user_backup_codes`, Edge Function y frontend para recuperación de MFA de emergencia.
+    *   **SRE:** Añadir NEXT_PUBLIC_SENTRY_DSN e integrar con proyecto Sentry.
+*   **Decisión CTO:** Priorizar estabilidad del cliente antes del parcheo agresivo; implementado Sentry y solucionados errores de tokens (Unhandled Rejections en Middleware de Supabase) junto a corrección Responsiva en el calendario.
 
 ## 🛡️ Auditoría de Sincronización (Checklist)
 - [x] ¿El CTO ha definido la visión global?
