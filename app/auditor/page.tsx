@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useStore } from '@/store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, FileText, CheckCircle, AlertTriangle, XCircle, RefreshCw, Activity, Calendar as CalendarIcon, Download, Settings2, PlusCircle, X } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle, AlertTriangle, XCircle, RefreshCw, Activity, Calendar as CalendarIcon, Download, Settings2, PlusCircle, X, Coffee } from 'lucide-react';
+import Link from 'next/link';
 import { useDropzone } from 'react-dropzone';
 import { format, subMonths, setDate, isSunday, addDays } from 'date-fns';
 import { jsPDF } from 'jspdf';
@@ -714,7 +715,23 @@ export default function AuditorPage() {
                     </div>
                   </div>
 
-                  <div className="text-center opacity-40 font-mono text-[8px] uppercase tracking-[0.3em] text-white">
+                  {/* Tip / Support Banner */}
+                  <div className="brutal-card p-6 bg-[var(--color-citrus-yellow)] border-[3px] border-black flex flex-col md:flex-row items-center justify-between gap-4 shadow-brutal-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-black text-white p-2 rounded-full">
+                        <Coffee className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-display font-black text-lg uppercase leading-none">¿Te ha servido la auditoría?</p>
+                        <p className="font-mono text-[9px] font-bold uppercase opacity-60">Ayúdanos a seguir siendo independientes y sin publicidad.</p>
+                      </div>
+                    </div>
+                    <Link href="/apoyar-proyecto" className="brutal-btn bg-white text-black px-6 py-2 text-xs font-black uppercase whitespace-nowrap">
+                      Invitar a un café
+                    </Link>
+                  </div>
+
+                  <div className="text-center opacity-40 font-mono text-[8px] uppercase tracking-[0.3em] text-white pt-4">
                     * * * Fin de Transmisión * * *
                   </div>
                 </motion.div>

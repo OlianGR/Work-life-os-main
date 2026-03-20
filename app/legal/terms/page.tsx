@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ChevronLeft, Scale, AlertTriangle, Cpu, Globe, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Scale, AlertTriangle, Cpu, Globe, ShieldAlert, CheckCircle2, Coffee } from 'lucide-react';
 
 export default function TermsPage() {
   return (
@@ -117,6 +117,23 @@ export default function TermsPage() {
               <li>Explotación del servicio con fines distintos a los previstos.</li>
             </ul>
             <p className="bg-white/10 p-4 border border-white/20">Olianlabs se reserva el derecho de suspender o cancelar cuentas que incumplan estas condiciones.</p>
+          </div>
+        </section>
+        
+        {/* 6. CONTRIBUCIONES Y SOPORTE (CAFÉS) */}
+        <section className="brutal-card bg-[var(--color-sky-blue)] p-8 border-[3px] border-black shadow-brutal">
+          <h2 className="text-2xl font-display font-black uppercase tracking-tight flex items-center gap-3 mb-6 text-black">
+            <Coffee className="w-6 h-6" /> 6. Contribuciones y Soporte
+          </h2>
+          <div className="space-y-4 font-mono text-sm leading-relaxed text-black">
+            <p>Work Life OS ofrece la posibilidad de realizar aportaciones económicas voluntarias (referidas como "invitar a un café") para apoyar el mantenimiento y desarrollo del proyecto.</p>
+            <div className="bg-white/50 p-4 border-2 border-dashed border-black">
+              <p className="font-bold uppercase text-xs mb-2">Política de No Reembolso:</p>
+              <p>Dada la naturaleza de estas aportaciones como actos de apoyo voluntario y soporte al proyecto, <span className="underline font-bold text-black">todas las transacciones son finales y no se realizarán reembolsos</span> una vez que el pago haya sido procesado con éxito a través de Stripe.</p>
+              <p className="mt-2 text-[10px] opacity-70">El usuario acepta expresamente que, al ser una contribución voluntaria procesada inmediatamente, renuncia al derecho de desistimiento una vez el pago sea completado.</p>
+            </div>
+            <p>El usuario reconoce que estas contribuciones no otorgan derechos de propiedad, licencia especial, ni obligación de soporte técnico personalizado por parte de Olianlabs.</p>
+            <p className="text-[10px] opacity-70 italic text-black/60">Los pagos son procesados de forma segura por Stripe, Inc. y están sujetos a sus términos de servicio.</p>
           </div>
         </section>
 

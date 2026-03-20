@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useSyncExternalStore } from 'react';
+import Image from 'next/image';
 import { useStore, ShiftProfile } from '@/store/useStore';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Save, ShieldCheck, ShieldAlert, Key, Smartphone } from 'lucide-react';
+import { Plus, Trash2, Save, ShieldCheck, ShieldAlert, Key, Smartphone, RefreshCcw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const emptySubscribe = () => () => { };
@@ -24,6 +25,8 @@ export default function SettingsPage() {
   const [mfaCode, setMfaCode] = useState('');
   const [mfaError, setMfaError] = useState('');
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
 
   useEffect(() => {
     // Check if MFA is already enabled
@@ -79,9 +82,13 @@ export default function SettingsPage() {
       });
       if (verify.error) throw verify.error;
 
+      // Automatically generate the rescue codes if the verification succeeds
+      const { data: codes, error: rpcError } = await supabase.rpc('generate_mfa_backup_codes');
+      if (codes) setGeneratedCodes(codes);
+
       setMfaEnabled(true);
       setShowMfaEnroll(false);
-      alert('¡MFA Activado correctamente!');
+      // Removed the alert since now the codes modal will pop up immediately.
     } catch (err: any) {
       setMfaError(err.message || 'Código incorrecto');
     }
@@ -99,6 +106,21 @@ export default function SettingsPage() {
       setMfaEnabled(false);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleRegenerateCodes = async () => {
+    if (!confirm('¿Quieres generar 10 códigos nuevos? Los anteriores dejarán de funcionar.')) return;
+    setIsRegenerating(true);
+    setMfaError('');
+    try {
+      const { data: codes, error: rpcError } = await supabase.rpc('generate_mfa_backup_codes');
+      if (rpcError) throw rpcError;
+      if (codes) setGeneratedCodes(codes);
+    } catch (err: any) {
+      setMfaError(err.message || 'Error al regenerar códigos');
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -324,12 +346,26 @@ export default function SettingsPage() {
                   <p className="font-mono text-sm text-gray-500 max-w-md text-left">Tu cuenta está protegida con una capa adicional de seguridad. Se requerirá un código de tu móvil para entrar.</p>
                 </div>
               </div>
-              <button
-                onClick={handleUnenrollMFA}
-                className="brutal-btn px-6 py-3 bg-[var(--color-neon-fuchsia)] text-white font-mono text-xs font-bold uppercase tracking-widest"
-              >
-                Desactivar MFA
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleRegenerateCodes}
+                  disabled={isRegenerating}
+                  className="brutal-btn px-6 py-3 bg-[var(--color-citrus-yellow)] text-black font-mono text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                >
+                  {isRegenerating ? (
+                    <RefreshCcw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCcw className="w-4 h-4" />
+                  )}
+                  Regenerar Códigos
+                </button>
+                <button
+                  onClick={handleUnenrollMFA}
+                  className="brutal-btn px-6 py-3 bg-[var(--color-neon-fuchsia)] text-white font-mono text-xs font-bold uppercase tracking-widest"
+                >
+                  Desactivar MFA
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
@@ -359,6 +395,53 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {/* Rescue Codes Modal */}
+          {generatedCodes.length > 0 && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="brutal-card p-8 bg-[var(--color-citrus-yellow)] border-4 border-black max-w-lg w-full relative z-[101] text-center shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+              >
+                <div className="mx-auto w-16 h-16 bg-white border-4 border-black rounded-full flex items-center justify-center mb-4">
+                  <Key className="w-8 h-8 text-black" />
+                </div>
+                <h3 className="text-3xl font-display font-black mb-4 uppercase leading-none">CÓDIGOS DE RESCATE</h3>
+                <p className="text-sm font-bold font-mono text-black mb-6 bg-white p-3 border-2 border-black inline-block shadow-brutal-sm">
+                  Cópialos a una caja fuerte de contraseñas, imprímelos o escríbelos. Solo se mostrarán una vez. Cada código sirve para iniciar sesión 1 única vez si pierdes tu móvil.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 mb-8">
+                  {generatedCodes.map((code, idx) => (
+                    <div key={idx} className="bg-white p-3 border-[3px] border-black font-mono text-lg font-black tracking-widest text-center shadow-brutal-sm uppercase">
+                      {code}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => {
+                        const allCodes = generatedCodes.join('\n');
+                        navigator.clipboard.writeText(`Work Life OS - Backup Codes\n\n${allCodes}\n\nGuarda estos códigos en un lugar seguro.`);
+                        alert('Códigos copiados al portapapeles');
+                    }}
+                    className="flex-1 brutal-btn py-4 bg-white text-black font-mono text-xs font-bold uppercase tracking-widest rounded-2xl"
+                  >
+                    Copiar Todos
+                  </button>
+                  <button 
+                    onClick={() => setGeneratedCodes([])}
+                    className="flex-1 brutal-btn py-4 bg-black text-white font-mono text-xs font-bold uppercase tracking-widest rounded-2xl"
+                  >
+                    ¡Ya los he copiado!
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
           {/* MFA Enrollment Modal Overlay */}
           {showMfaEnroll && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -373,7 +456,14 @@ export default function SettingsPage() {
 
                 <div className="bg-white p-4 border-2 border-black inline-block mb-6 shadow-brutal-sm">
                   {qrCode && (
-                    <img src={qrCode} alt="QR Code MFA" className="w-48 h-48" />
+                    <Image 
+                      src={qrCode} 
+                      alt="QR Code MFA" 
+                      width={192} 
+                      height={192} 
+                      className="w-48 h-48"
+                      unoptimized // QR codes are usually data URLs
+                    />
                   )}
                 </div>
 

@@ -31,6 +31,8 @@
     "react-dom": "^19.2.1",
     "react-dropzone": "^15.0.0",
     "recharts": "^3.8.0",
+    "resend": "^6.9.4",
+    "stripe": "^20.4.1",
     "tailwind-merge": "^3.5.0",
     "zustand": "^5.0.11"
   },

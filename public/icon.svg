@@ -1,0 +1,9 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="120" fill="#FFFF00"/>
+  <rect x="12" y="12" width="488" height="488" rx="108" stroke="black" stroke-width="24"/>
+  <!-- "Nano Banana" stylized shape -->
+  <path d="M160 380C160 380 180 320 256 320C332 320 352 380 352 380" stroke="black" stroke-width="40" stroke-linecap="round"/>
+  <path d="M120 220C120 220 180 140 256 140C332 140 392 220 392 220L360 250C360 250 310 200 256 200C202 200 152 250 152 250L120 220Z" fill="black"/>
+  <circle cx="256" cy="256" r="40" fill="black"/>
+</svg>

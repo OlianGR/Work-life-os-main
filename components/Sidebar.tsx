@@ -21,12 +21,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const { signOut, user } = useStore();
   const [isOpen, setIsOpen] = useState(false);
-  
-  // Cerrar sidebar automáticamente cuando cambia la ruta
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
-
   if (!isClient) return null;
 
   const userIdentifier = user?.email || 'Usuario';
@@ -80,6 +74,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 md:py-3 rounded-2xl font-black text-xs md:text-base transition-all border-[3px] border-transparent uppercase tracking-wide ${isActive
                     ? 'bg-[var(--color-citrus-yellow)] border-black shadow-brutal translate-x-[-4px] translate-y-[-4px]'
                     : 'hover:bg-gray-100 text-gray-700 hover:border-black/10'
