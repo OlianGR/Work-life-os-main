@@ -5,3 +5,17 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Testing
+playwright-report/
+test-results/
+test-results.xml
+
+# Sentry
+.sentry-debug-id-*
+
+# Production
+dist/
+build/
+out/
+.vercel

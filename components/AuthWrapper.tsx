@@ -10,9 +10,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LandingHero } from './auth/LandingHero';
 import { MfaForm } from './auth/MfaForm';
 import { AuthForm } from './auth/AuthForm';
+import { usePathname } from 'next/navigation';
 
 export function AuthWrapper({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [showLogin, setShowLogin] = useState(false);
+  // ... existing states ...
   const [isRegister, setIsRegister] = useState(false);
   const { user, setUser, fetchUserData, initHolidays2026 } = useStore();
   
@@ -66,7 +69,12 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
     };
   }, [setUser, fetchUserData, initHolidays2026]);
 
-  if (user) {
+  const isPublicPath = 
+    (pathname.startsWith('/legal/') || 
+     pathname === '/apoyar-proyecto' ||
+     pathname === '/about');
+
+  if (user || isPublicPath) {
     return <>{children}</>;
   }
 
