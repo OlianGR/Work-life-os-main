@@ -1,9 +1,20 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="512" height="512" rx="120" fill="#FFFF00"/>
-  <rect x="12" y="12" width="488" height="488" rx="108" stroke="black" stroke-width="24"/>
-  <!-- "Nano Banana" stylized shape -->
-  <path d="M160 380C160 380 180 320 256 320C332 320 352 380 352 380" stroke="black" stroke-width="40" stroke-linecap="round"/>
-  <path d="M120 220C120 220 180 140 256 140C332 140 392 220 392 220L360 250C360 250 310 200 256 200C202 200 152 250 152 250L120 220Z" fill="black"/>
-  <circle cx="256" cy="256" r="40" fill="black"/>
+  <!-- Rounded Square Card (App Icon Style) -->
+  <rect x="25" y="25" width="462" height="462" rx="80" fill="#FFFF00"/>
+  <rect x="25" y="25" width="462" height="462" rx="80" stroke="black" stroke-width="32"/>
+  
+  <!-- Banana / Graph Hybrid Shape -->
+  <!-- Upper Curve (The Nano Banana part) -->
+  <path d="M120 280C120 213.726 186.274 160 256 160C325.726 160 392 213.726 392 280V320" stroke="black" stroke-width="50" stroke-linecap="square"/>
+  
+  <!-- Lower Platform (Software/System platform) -->
+  <rect x="120" y="320" width="272" height="60" fill="black" stroke="black" stroke-width="12"/>
+  
+  <!-- "Software Window" three dots (Brutalist style) -->
+  <circle cx="170" cy="350" r="15" fill="#FF00FF"/>
+  <circle cx="210" cy="350" r="15" fill="#00FFFF"/>
+  <circle cx="250" cy="350" r="15" fill="white"/>
+  
+  <!-- Shadow (Brutalist Shadow) -->
+  <rect x="100" y="100" width="462" height="462" rx="80" fill="black" fill-opacity="0.1" style="mix-blend-mode:multiply"/>
 </svg>

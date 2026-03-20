@@ -58,6 +58,11 @@ export default async function Image() {
           >
             Optimiza tu vida laboral con IA
           </p>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+            <div style={{ width: '15px', height: '15px', borderRadius: '50%', background: '#FF00FF', border: '2px solid black' }} />
+            <div style={{ width: '15px', height: '15px', borderRadius: '50%', background: '#00FFFF', border: '2px solid black' }} />
+            <div style={{ width: '15px', height: '15px', borderRadius: '50%', background: 'white', border: '2px solid black' }} />
+          </div>
         </div>
         
         {/* Footer info */}
