@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/angel/Work-life-os-main/main/public/icon.svg" width="128" height="128" alt="Work Life OS Logo" />
+  <img src="public/icon.svg" width="128" height="128" alt="Work Life OS Logo" />
   <h1>WORK LIFE OS</h1>
   <p><strong>El Sistema Definitivo para Freelancers y Profesionales Modernos</strong></p>
   <p>
