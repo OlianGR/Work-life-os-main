@@ -6,7 +6,7 @@ export async function sendThankYouEmail(email: string, name: string = 'amigo', c
     try {
         const plural = coffeeCount > 1 ? 's' : '';
         const data = await resend.emails.send({
-            from: 'Olian Labs <onboarding@resend.dev>', // Usa onboarding@resend.dev hasta que verifiques tu dominio
+            from: 'Angel de Olianlabs <angel@olianlabs.com>', 
             to: [email],
             subject: `¡Gracias por el café, ${name}! ☕️`,
             html: `
