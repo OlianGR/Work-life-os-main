@@ -126,7 +126,7 @@ export default function TermsPage() {
             <Coffee className="w-6 h-6" /> 6. Contribuciones y Soporte
           </h2>
           <div className="space-y-4 font-mono text-sm leading-relaxed text-black">
-            <p>Work Life OS ofrece la posibilidad de realizar aportaciones económicas voluntarias (referidas como "invitar a un café") para apoyar el mantenimiento y desarrollo del proyecto.</p>
+            <p>Work Life OS ofrece la posibilidad de realizar aportaciones económicas voluntarias (referidas como &quot;invitar a un café&quot;) para apoyar el mantenimiento y desarrollo del proyecto.</p>
             <div className="bg-white/50 p-4 border-2 border-dashed border-black">
               <p className="font-bold uppercase text-xs mb-2">Política de No Reembolso:</p>
               <p>Dada la naturaleza de estas aportaciones como actos de apoyo voluntario y soporte al proyecto, <span className="underline font-bold text-black">todas las transacciones son finales y no se realizarán reembolsos</span> una vez que el pago haya sido procesado con éxito a través de Stripe.</p>
