@@ -290,7 +290,7 @@ export default function SettingsPage() {
 
             <button
               onClick={handleAdd}
-              disabled={!newProfile.name || newProfile.rate <= 0}
+              disabled={!newProfile.name || (newProfile.rate <= 0 && newProfile.positionPlus <= 0)}
               className="brutal-btn p-5 bg-black text-white self-end md:self-auto flex items-center gap-2 rounded-2xl w-full md:w-auto justify-center"
             >
               <Plus className="w-6 h-6" />

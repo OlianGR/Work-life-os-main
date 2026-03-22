@@ -184,6 +184,8 @@ export const useStore = create<AppState>((set, get) => ({
           color: data.color
         }]
       }));
+    } else if (error) {
+      console.error('Error adding profile to Supabase:', error);
     }
   },
 
