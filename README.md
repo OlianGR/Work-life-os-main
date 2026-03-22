@@ -16,7 +16,7 @@ Work Life OS no es solo una hoja de cálculo; es tu centro de mando laboral. Dis
 
 ### 🚀 Características Principales
 
-*   **⚡ Control de Jornada Inteligente:** Mantén tus días trabajados bajo control, respetando el límite legal de 221 días.
+*   **⚡ Control de Jornada Inteligente:** Mantén tus días trabajados bajo control, respetando el límite legal de días.
 *   **🧠 Auditoría de Nóminas con IA:** Sube tus nóminas o recibos y deja que nuestro motor de IA (vía Groq/Gemini) analice tus ingresos y detecte discrepancias.
 *   **📊 Dashboards de Alto Impacto:** Visualiza tus ingresos mensuales, promedios diarios y métricas de salud laboral con gráficos interactivos de Recharts.
 *   **☕ Soporte Comunitario:** Sistema integrado de propinas vía Stripe con mensajes personalizados para el creador.

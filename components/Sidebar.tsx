@@ -3,17 +3,18 @@
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, FileText, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, FileText, Settings, LogOut, Menu, X, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 
 const emptySubscribe = () => () => { };
 
 const navItems = [
-  { name: 'Panel', href: '/', icon: LayoutDashboard },
-  { name: 'Calendario', href: '/calendar', icon: CalendarDays },
-  { name: 'Auditor', href: '/auditor', icon: FileText },
-  { name: 'Ajustes', href: '/settings', icon: Settings },
+  { name: 'Panel', href: '/', icon: LayoutDashboard, public: false },
+  { name: 'Calendario', href: '/calendar', icon: CalendarDays, public: false },
+  { name: 'Auditor', href: '/auditor', icon: FileText, public: false },
+  { name: 'Ajustes', href: '/settings', icon: Settings, public: false },
+  { name: 'Apoyar', href: '/apoyar-proyecto', icon: Coffee, public: true },
 ];
 
 export function Sidebar() {
@@ -68,7 +69,9 @@ export function Sidebar() {
         </div>
 
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto overflow-x-hidden pt-8">
-          {navItems.map((item) => {
+          {navItems
+            .filter(item => user || item.public)
+            .map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
@@ -87,25 +90,27 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="p-4 border-t-[4px] border-black space-y-4 bg-gray-50 shrink-0 mb-4 md:mb-0">
-          <button
-            onClick={() => signOut()}
-            className="w-full flex items-center justify-center md:justify-start gap-3 px-4 py-4 md:py-3 font-black text-sm transition-all bg-white border-[3px] border-black rounded-2xl shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] text-[var(--color-neon-fuchsia)] tracking-widest uppercase"
-          >
-            <LogOut className="w-5 h-5" />
-            Cerrar Sesión
-          </button>
+        {user && (
+          <div className="p-4 border-t-[4px] border-black space-y-4 bg-gray-50 shrink-0 mb-4 md:mb-0">
+            <button
+              onClick={() => signOut()}
+              className="w-full flex items-center justify-center md:justify-start gap-3 px-4 py-4 md:py-3 font-black text-sm transition-all bg-white border-[3px] border-black rounded-2xl shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] text-[var(--color-neon-fuchsia)] tracking-widest uppercase"
+            >
+              <LogOut className="w-5 h-5" />
+              Cerrar Sesión
+            </button>
 
-          <div className="flex items-center gap-3 p-4 bg-white border-[3px] border-black rounded-2xl shadow-brutal-sm overflow-hidden">
-            <div className="w-12 h-12 md:w-10 md:h-10 border-2 border-black bg-black rounded-full flex items-center justify-center text-white font-black text-xs md:text-[10px] text-center shrink-0">
-              {initials}
-            </div>
-            <div className="overflow-hidden">
-              <p className="font-black text-[10px] md:text-xs truncate uppercase leading-tight">{userIdentifier}</p>
-              <p className="text-[10px] font-mono text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">Cloud Access</p>
+            <div className="flex items-center gap-3 p-4 bg-white border-[3px] border-black rounded-2xl shadow-brutal-sm overflow-hidden">
+              <div className="w-12 h-12 md:w-10 md:h-10 border-2 border-black bg-black rounded-full flex items-center justify-center text-white font-black text-xs md:text-[10px] text-center shrink-0">
+                {initials}
+              </div>
+              <div className="overflow-hidden">
+                <p className="font-black text-[10px] md:text-xs truncate uppercase leading-tight">{userIdentifier}</p>
+                <p className="text-[10px] font-mono text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">Cloud Access</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );

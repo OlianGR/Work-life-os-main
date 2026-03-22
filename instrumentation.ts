@@ -7,3 +7,9 @@ export async function register() {
     await import('./sentry.edge.config');
   }
 }
+
+export const onRequestError = (error: unknown) => {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Sentry will automatically capture this if using the latest SDK
+  }
+};

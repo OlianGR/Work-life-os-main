@@ -3,6 +3,11 @@ import { AuthWrapper } from '../components/AuthWrapper';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { supabase } from '@/lib/supabase';
 
+// Mock de next/navigation
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+}));
+
 // Mock del store
 vi.mock('@/store/useStore', () => ({
   useStore: () => ({

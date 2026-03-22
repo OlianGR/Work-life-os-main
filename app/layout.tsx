@@ -42,6 +42,7 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  metadataBase: new URL('https://worklifeos.olianlabs.com'),
   icons: {
     icon: '/icon.svg',
     apple: '/icon.svg',
