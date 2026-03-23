@@ -73,11 +73,13 @@ describe('AuthWrapper Security Tests', () => {
 
     const emailInput = await screen.findByPlaceholderText(/tu@email.com/i);
     const passwordInput = await screen.findByPlaceholderText(/Mínimo 6 caracteres/i);
+    const confirmPasswordInput = await screen.findByPlaceholderText(/Confirma tu contraseña/i);
     const submitBtn = await screen.findByText(/Crear mi cuenta/i);
     const form = emailInput.closest('form');
 
     fireEvent.change(emailInput, { target: { value: 'existing@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.change(confirmPasswordInput, { target: { value: 'password123' } });
     
     // Aceptamos términos (hay 2 checkboxes en registro)
     const checkboxes = screen.getAllByRole('checkbox');

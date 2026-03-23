@@ -231,6 +231,8 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
         setError('Acceso denegado. Email o contraseña no válidos.');
       } else if (message.includes('verificar')) {
         setError('Cuenta pendiente de verificación por email.');
+      } else if (message.includes('already registered')) {
+        setError('Se ha producido un error. Si tienes cuenta, inicia sesión.');
       } else {
         setError(message || 'Se ha producido un error en la autenticación.');
       }
