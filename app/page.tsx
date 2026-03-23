@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useStore } from '@/store/useStore';
-import { format, subMonths, setDate, isSunday } from 'date-fns';
+import { format, subMonths, setDate } from 'date-fns';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { Activity, Clock, FileDown, ShieldCheck, Heart, BookOpen, Briefcase, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ExportModal } from '@/components/ExportModal';
 import { supabase } from '@/lib/supabase';
-import { getDashboardStats } from '@/lib/calculations';
+import { calculateTotalIncome, getDashboardStats, calculateDailyIncome } from '@/lib/calculations';
 
 // New Dashboard Components
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -182,7 +182,7 @@ export default function Dashboard() {
               const profileIncome = Object.values(logs).reduce((acc: number, log: any) => {
                 if ((log.type === 'worked' || log.isWorkedHoliday) && log.profileId === profile.id) {
                   count++;
-                  return acc + profile.rate + (profile.positionPlus || 0) + (((log.isWorkedHoliday || isSunday(new Date(log.date))) && ((profile.rate || 0) > 0 || (profile.positionPlus || 0) > 0)) ? 20 : 0);
+                  return acc + calculateDailyIncome(log, profile);
                 }
                 return acc;
               }, 0);
@@ -273,7 +273,7 @@ export default function Dashboard() {
                       {log.notes || '—'}
                     </td>
                     <td className="p-4 text-right font-mono font-black text-sm md:text-base">
-                      {profile ? (profile.rate + (profile.positionPlus || 0) + ((log.isWorkedHoliday || isSunday(new Date(log.date))) ? 20 : 0)).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) : '—'}
+                      {profile ? calculateDailyIncome(log, profile).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) : '—'}
                     </td>
                   </tr>
                 );

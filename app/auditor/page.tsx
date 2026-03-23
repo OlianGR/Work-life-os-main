@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, FileText, CheckCircle, AlertTriangle, XCircle, RefreshCw, Activity, Calendar as CalendarIcon, Download, Settings2, PlusCircle, X, Coffee } from 'lucide-react';
 import Link from 'next/link';
 import { useDropzone } from 'react-dropzone';
-import { format, subMonths, setDate, isSunday, addDays } from 'date-fns';
+import { format, subMonths, setDate, addDays } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -91,7 +91,7 @@ export default function AuditorPage() {
         ['Antigüedad', `${audit.breakdown.seniority.toFixed(2)}€`],
         ['Incentivos (Calendario)', `${audit.breakdown.incentives.toFixed(2)}€`],
         ['Plus Puesto de Trabajo', `${audit.breakdown.positionPlus.toFixed(2)}€`],
-        ['Plus Festivos (Domingos)', `${audit.breakdown.holidayPlus.toFixed(2)}€`],
+        ['Plus Festivos', `${audit.breakdown.holidayPlus.toFixed(2)}€`],
         ['Plus Post-Festivo', `${audit.breakdown.postHolidayPlus.toFixed(2)}€`],
         ['Plus Transporte', `${audit.breakdown.transportPlus.toFixed(2)}€`],
         ['Plus Vestuario', `${audit.breakdown.clothingPlus.toFixed(2)}€`],
@@ -151,7 +151,7 @@ export default function AuditorPage() {
 
       Object.values(logs).forEach((log) => {
         if (log.date >= startDate && log.date <= endDate) {
-          const isSun = isSunday(new Date(log.date));
+
           const isWorkedHol = log.type === 'holiday' && log.isWorkedHoliday;
 
           if ((log.type === 'worked' || isWorkedHol) && log.profileId) {
@@ -160,9 +160,8 @@ export default function AuditorPage() {
               incentives += profile.rate;
               positionPlus += profile.positionPlus;
 
-              // Plus festivos (Sundays or specifically marked worked holidays)
-              if (isSun || isWorkedHol) {
-                holidayPlus += 20; // Fixed boost
+              // Plus festivos (specifically marked worked holidays)
+              if (isWorkedHol) {
                 holidayDaysDetail.push({
                   date: log.date,
                   profileName: profile.name,
@@ -648,7 +647,7 @@ export default function AuditorPage() {
                          <Row label="Plus Puesto" value={result.breakdown.positionPlus} />
                          <div className="relative group/festivos">
                            <Row
-                             label="Plus Festivos/Dom."
+                             label="Plus Festivos"
                              value={result.breakdown.holidayPlus}
                              isSpecial
                              onClick={() => setShowFestivosDetail(!showFestivosDetail)}

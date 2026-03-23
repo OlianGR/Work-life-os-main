@@ -1,4 +1,4 @@
-import { isSunday } from 'date-fns';
+import { } from 'date-fns';
 
 export interface Profile {
   id: string;
@@ -28,13 +28,8 @@ export function calculateDailyIncome(log: Log, profile?: Profile): number {
 
   const baseRate = profile.rate || 0;
   const plus = profile.positionPlus || 0;
-  
-  // Requirement: Bonus only if it's a worked holiday or Sunday, and the profile has any income (rate or plus).
-  const isBonusDay = log.isWorkedHoliday || isSunday(new Date(log.date));
-  const hasIncome = baseRate > 0 || plus > 0;
-  const bonus = (isBonusDay && hasIncome) ? 20 : 0;
 
-  return baseRate + plus + bonus;
+  return baseRate + plus;
 }
 
 /**
@@ -52,7 +47,7 @@ export function calculateTotalIncome(logs: Log[], profiles: Profile[]): number {
  */
 export function getDashboardStats(logs: Log[], profiles: Profile[], legalLimit: number, holidayLimit: number) {
   const workedDays = logs.filter(log => log.type === 'worked' || log.isWorkedHoliday).length;
-  const workedHolidays = logs.filter(log => log.isWorkedHoliday || (log.type === 'worked' && isSunday(new Date(log.date)))).length;
+  const workedHolidays = logs.filter(log => !!log.isWorkedHoliday).length;
   
   const totalIncome = calculateTotalIncome(logs, profiles);
   const totalPositionPlus = logs.reduce((acc, log) => {

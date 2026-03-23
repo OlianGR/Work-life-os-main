@@ -2,7 +2,8 @@
 
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Activity, Calendar as CalendarIcon } from 'lucide-react';
-import { isSunday } from 'date-fns';
+import { format } from 'date-fns';
+import { calculateDailyIncome } from '@/lib/calculations';
 
 interface WorkedHolidaysModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export function WorkedHolidaysModal({ isOpen, onClose, logs, profiles, workedHol
               <div className="flex items-center gap-3">
                 <Activity className="w-6 h-6" />
                 <div>
-                  <h3 className="font-display font-black text-2xl uppercase tracking-tighter">Festivos/Domingos Trabajados</h3>
+                  <h3 className="font-display font-black text-2xl uppercase tracking-tighter">Festivos Trabajados</h3>
                   <p className="font-mono text-xs opacity-80 uppercase font-bold tracking-widest">Registro de Actividad Especial</p>
                 </div>
               </div>
@@ -49,32 +50,27 @@ export function WorkedHolidaysModal({ isOpen, onClose, logs, profiles, workedHol
             <div className="p-6 overflow-y-auto bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]">
               <div className="space-y-4">
                 {(Object.values(logs) as any[])
-                  .filter((log: any) => log.isWorkedHoliday || (log.type === 'worked' && isSunday(new Date(log.date))))
+                  .filter((log: any) => !!log.isWorkedHoliday)
                   .sort((a: any, b: any) => b.date.localeCompare(a.date))
                   .map((log: any, idx: number) => {
                     const profile = (profiles as any[]).find((p: any) => p.id === log.profileId);
                     return (
                       <div key={idx} className="brutal-card p-4 bg-white border-2 border-black flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                         <div className="flex items-center gap-4">
-                          <div className={`${isSunday(new Date(log.date)) && !log.isWorkedHoliday ? 'bg-[var(--color-electric-cyan)]' : 'bg-[var(--color-citrus-yellow)]'} border-2 border-black p-2 font-mono font-black text-xs min-w-[100px] text-center shadow-brutal-sm rounded-xl`}>
+                          <div className="bg-[var(--color-citrus-yellow)] border-2 border-black p-2 font-mono font-black text-xs min-w-[100px] text-center shadow-brutal-sm rounded-xl">
                             {log.date}
                           </div>
                           <div>
-                            <p className="font-bold flex items-center gap-2">
+                            <div className="font-bold flex items-center gap-2">
                               <span className="px-2 py-0.5 bg-black text-white text-[10px] font-black uppercase tracking-widest">
                                 {profile?.name || 'ROL NO DEF.'}
                               </span>
-                              {isSunday(new Date(log.date)) && !log.isWorkedHoliday && (
-                                <span className="px-2 py-0.5 bg-[var(--color-citrus-yellow)] text-black text-[9px] font-black uppercase tracking-widest border-2 border-black ml-2">
-                                  DOMINGO
-                                </span>
-                              )}
-                            </p>
+                            </div>
                             {log.notes && <p className="text-xs text-gray-500 font-mono italic mt-1">&quot;{log.notes}&quot;</p>}
                           </div>
                         </div>
                         <div className="font-mono font-black text-[var(--color-neon-fuchsia)] border-b-2 border-dashed border-[var(--color-neon-fuchsia)]">
-                          +{(profile?.rate || 0) + (profile?.positionPlus || 0) + 20} €
+                          +{calculateDailyIncome(log, profile)} €
                         </div>
                       </div>
                     );
@@ -91,7 +87,7 @@ export function WorkedHolidaysModal({ isOpen, onClose, logs, profiles, workedHol
 
             <div className="p-4 bg-gray-50 border-t-[3px] border-black flex justify-between items-center">
               <p className="font-mono text-[10px] font-bold text-gray-500 uppercase">
-                Total Acumulado: {workedHolidays} Días Especiales
+                Total Acumulado: {workedHolidays} Festivos Trabajados
               </p>
               <button
                 onClick={onClose}
