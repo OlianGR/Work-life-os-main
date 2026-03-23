@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import { isSunday } from 'date-fns';
 
 interface WorkedDaysModalProps {
   isOpen: boolean;
@@ -55,7 +56,7 @@ export function WorkedDaysModal({ isOpen, onClose, logs, profiles, workedDays }:
                     return (
                       <div key={idx} className="brutal-card p-4 bg-white border-2 border-black flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                         <div className="flex items-center gap-4">
-                          <div className={`${log.isWorkedHoliday ? 'bg-[var(--color-neon-fuchsia)] text-white' : 'bg-[var(--color-electric-cyan)] text-black'} border-2 border-black p-2 font-mono font-black text-xs min-w-[100px] text-center shadow-brutal-sm rounded-xl`}>
+                          <div className={`${(log.isWorkedHoliday || isSunday(new Date(log.date))) ? 'bg-[var(--color-neon-fuchsia)] text-white' : 'bg-[var(--color-electric-cyan)] text-black'} border-2 border-black p-2 font-mono font-black text-xs min-w-[100px] text-center shadow-brutal-sm rounded-xl`}>
                             {log.date}
                           </div>
                           <div>
@@ -68,9 +69,9 @@ export function WorkedDaysModal({ isOpen, onClose, logs, profiles, workedDays }:
                                   {profile.name}
                                 </span>
                               )}
-                              {log.isWorkedHoliday && (
+                              {(log.isWorkedHoliday || isSunday(new Date(log.date))) && (
                                 <span className="bg-black text-[var(--color-citrus-yellow)] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest border-2 border-black">
-                                  Festivo Trabajado
+                                  {isSunday(new Date(log.date)) && !log.isWorkedHoliday ? 'Domingo' : 'Festivo Trabajado'}
                                 </span>
                               )}
                             </div>
@@ -78,7 +79,7 @@ export function WorkedDaysModal({ isOpen, onClose, logs, profiles, workedDays }:
                           </div>
                         </div>
                         <div className="font-mono font-black text-black">
-                          {profile?.rate || 0} €
+                          {(profile?.rate || 0) + (profile?.positionPlus || 0) + ((log.isWorkedHoliday || isSunday(new Date(log.date))) ? 20 : 0)} €
                         </div>
                       </div>
                     );

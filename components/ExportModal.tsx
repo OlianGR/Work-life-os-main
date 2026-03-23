@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { calculateDailyIncome } from '@/lib/calculations';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -72,20 +73,31 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
         doc.setFont('helvetica', 'bold');
         doc.text(monthName, 14, currentY);
         currentY += 10;
+        const summaryData: Record<string, { count: number; total: number }> = {};
 
         const tableData = monthLogs.map(([date, log]: [string, any]) => {
           const profile = profiles.find((p: any) => p.id === log.profileId);
           let typeLabel = "DESCONOCIDO";
+          const isWorked = log.type === 'worked' || log.isWorkedHoliday;
+          
           if (log.isWorkedHoliday) typeLabel = "FESTIVO TRABAJADO";
           else if (log.type === 'worked') typeLabel = "TRABAJO";
           else if (log.type === 'holiday') typeLabel = "FESTIVO (LIBRE)";
           else if (log.type === 'off') typeLabel = "LIBRE";
 
+          const income = calculateDailyIncome(log, profile);
+
+          if (profile && isWorked) {
+            if (!summaryData[profile.name]) summaryData[profile.name] = { count: 0, total: 0 };
+            summaryData[profile.name].count += 1;
+            summaryData[profile.name].total += income;
+          }
+
           return [
             date,
             typeLabel,
             profile?.name || '—',
-            profile ? `${profile.rate + (log.isWorkedHoliday ? 20 : 0)} €` : '0 €',
+            `${income.toLocaleString('es-ES')} €`,
             log.notes || ''
           ];
         });
@@ -106,10 +118,26 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
           }
         });
 
-        currentY = (doc as any).lastAutoTable.finalY + 15;
+        currentY = (doc as any).lastAutoTable.finalY + 8;
+
+        // Add Summary for the month
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text("RESUMEN MENSUAL POR CATEGORÍA:", 14, currentY);
+        currentY += 6;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        Object.entries(summaryData).forEach(([name, data]) => {
+          const line = `${name}: ${data.count} días - Total: ${data.total.toLocaleString('es-ES')} €`;
+          doc.text(line, 20, currentY);
+          currentY += 5;
+        });
+
+        currentY += 10;
 
         // Add page if needed
-        if (currentY > 260 && month !== sortedMonths[sortedMonths.length - 1]) {
+        if (currentY > 240 && month !== sortedMonths[sortedMonths.length - 1]) {
           doc.addPage();
           currentY = 20;
         }

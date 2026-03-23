@@ -38,30 +38,30 @@ interface AppState {
   legalLimit: number;
   holidayLimit: number;
   loading: boolean;
-  
+
   // Auth
   setUser: (user: User | null) => void;
   signOut: () => Promise<void>;
-  
+
   // Sync
   fetchUserData: () => Promise<void>;
-  
+
   // Profiles
   addProfile: (profile: Omit<ShiftProfile, 'id'>) => Promise<void>;
   updateProfile: (id: string, profile: Partial<ShiftProfile>) => Promise<void>;
   deleteProfile: (id: string) => Promise<void>;
-  
+
   // Contract
   updateContract: (details: Partial<ContractDetails>) => Promise<void>;
-  
+
   // Logs
   logDay: (date: string, log: Omit<WorkLog, 'date'>) => Promise<void>;
   removeLog: (date: string) => Promise<void>;
-  
+
   // Settings
   setHolidayLimit: (limit: number) => Promise<void>;
   setLegalLimit: (limit: number) => Promise<void>;
-  
+
   // Init
   initHolidays2026: () => Promise<void>;
 }
@@ -79,23 +79,25 @@ export const useStore = create<AppState>((set, get) => ({
     socialSecurityRate: 6.35,
   },
   logs: {},
-  legalLimit: 221,
-  holidayLimit: 14,
+  legalLimit: 225,
+  holidayLimit: 13,
   loading: false,
 
   setUser: (user) => set({ user }),
 
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ user: null, logs: {}, profiles: [], contractDetails: {
-      baseSalary: 1200,
-      seniority: 0,
-      postHolidayPlus: 0,
-      transportPlus: 0,
-      clothingPlus: 0,
-      taxRate: 15,
-      socialSecurityRate: 6.35,
-    }});
+    set({
+      user: null, logs: {}, profiles: [], legalLimit: 225, holidayLimit: 13, contractDetails: {
+        baseSalary: 1200,
+        seniority: 0,
+        postHolidayPlus: 0,
+        transportPlus: 0,
+        clothingPlus: 0,
+        taxRate: 15,
+        socialSecurityRate: 6.35,
+      }
+    });
   },
 
   fetchUserData: async () => {
@@ -151,8 +153,8 @@ export const useStore = create<AppState>((set, get) => ({
         taxRate: Number(contract.tax_rate),
         socialSecurityRate: Number(contract.social_security_rate),
       } : get().contractDetails,
-      legalLimit: contract?.legal_limit || 221,
-      holidayLimit: contract?.holiday_limit || 14,
+      legalLimit: contract?.legal_limit || 225,
+      holidayLimit: contract?.holiday_limit || 13,
       logs: logsMap,
       loading: false
     });

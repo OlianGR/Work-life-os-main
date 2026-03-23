@@ -146,6 +146,17 @@ export default function SettingsPage() {
     '#A0C4FF',
     '#FFC6FF',
     '#CAFFBF',
+    '#FDFFB6',
+    '#BDB2FF',
+    '#FFADAD',
+    '#FFD6A5',
+    '#9BFBC0',
+    '#80FFDB',
+    '#FF6000',
+    '#9E7676',
+    '#59CE8F',
+    '#4D96FF',
+    '#FFD93D',
   ];
 
   return (
@@ -290,7 +301,7 @@ export default function SettingsPage() {
 
             <button
               onClick={handleAdd}
-              disabled={!newProfile.name || (newProfile.rate <= 0 && newProfile.positionPlus <= 0)}
+              disabled={!newProfile.name}
               className="brutal-btn p-5 bg-black text-white self-end md:self-auto flex items-center gap-2 rounded-2xl w-full md:w-auto justify-center"
             >
               <Plus className="w-6 h-6" />

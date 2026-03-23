@@ -74,6 +74,18 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
      pathname === '/apoyar-proyecto' ||
      pathname === '/about');
 
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+
+  useEffect(() => {
+    // Check if we are in a recovery flow (user clicked reset password link)
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    if (hash && (hash.includes('type=recovery') || hash.includes('access_token='))) {
+      setIsRecoveryMode(true);
+      setShowLogin(true);
+    }
+  }, []);
+
   if (user || isPublicPath) {
     return <>{children}</>;
   }
@@ -105,8 +117,62 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
     }
   };
 
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError('Escribe tu email para enviarte el enlace de recuperación.');
+      return;
+    }
+    
+    setIsProcessing(true);
+    setError('');
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/api/auth/callback?next=/reset-password-mode`,
+      });
+
+      if (error) throw error;
+      alert('¡Enlace enviado! Revisa tu bandeja de entrada para cambiar tu contraseña.');
+    } catch (err: any) {
+      setError('Error al enviar el enlace. Inténtalo de nuevo.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError('');
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      
+      alert('¡Contraseña actualizada con éxito!');
+      setIsRecoveryMode(false);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (err: any) {
+      setError(err.message || 'Error al actualizar la contraseña.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isRegister && password !== confirmPassword) {
+      setError('Las contraseñas no coinciden.');
+      return;
+    }
+
     setIsProcessing(true);
     setError('');
 
@@ -117,10 +183,13 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+            data: {
+              full_name: email.split('@')[0], // Basic placeholder
+            }
           }
         });
         if (error) throw error;
-        alert('¡Registro casi completo! Por favor verifica tu email para activar tu cuenta.');
+        alert('¡Bienvenido! Revisa tu correo electrónico para verificar tu cuenta y empezar a trabajar.');
         setIsRegister(false);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -163,7 +232,7 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
       } else if (message.includes('verificar')) {
         setError('Cuenta pendiente de verificación por email.');
       } else {
-        setError('Se ha producido un error en la autenticación. Reinténtalo.');
+        setError(message || 'Se ha producido un error en la autenticación.');
       }
     } finally {
       if (!showMfaChallenge) setIsProcessing(false);
@@ -270,12 +339,12 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
             </div>
             
             <h1 className="text-3xl font-display font-bold text-center mb-2">
-              {showMfaChallenge ? 'Seguridad Extra' : (isRegister ? 'Crear Cuenta' : 'Bienvenido de nuevo')}
+              {showMfaChallenge ? 'Seguridad Extra' : (isRecoveryMode ? 'Nueva Contraseña' : (isRegister ? 'Crear Cuenta' : 'Bienvenido de nuevo'))}
             </h1>
             <p className="text-center font-mono text-sm text-gray-500 mb-8">
-              {showMfaChallenge ? 'Protege tu cuenta' : (isRegister 
+              {showMfaChallenge ? 'Protege tu cuenta' : (isRecoveryMode ? 'Establece tu nueva contraseña de acceso' : (isRegister 
                 ? 'Regístrate para sincronizar tus datos en la nube' 
-                : 'Introduce tus credenciales para acceder')}
+                : 'Introduce tus credenciales para acceder'))}
             </p>
 
             {magicLinkSent ? (
@@ -311,15 +380,18 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
                 setEmail={(val) => { setEmail(val); setError(''); }}
                 password={password}
                 setPassword={(val) => { setPassword(val); setError(''); }}
-                isRegister={isRegister}
+                confirmPassword={confirmPassword}
+                setConfirmPassword={(val) => { setConfirmPassword(val); setError(''); }}
+                isRegister={isRegister || isRecoveryMode}
                 setIsRegister={setIsRegister}
-                useMagicLink={useMagicLink}
+                useMagicLink={useMagicLink && !isRecoveryMode}
                 setUseMagicLink={setUseMagicLink}
                 legalAccepted={legalAccepted}
                 setLegalAccepted={setLegalAccepted}
                 error={error}
                 isProcessing={isProcessing}
-                onSubmit={useMagicLink ? handleMagicLink : handleSubmit}
+                onSubmit={isRecoveryMode ? handleUpdatePassword : (useMagicLink ? handleMagicLink : handleSubmit)}
+                onResetPassword={handleResetPassword}
               />
             )}
           </div>

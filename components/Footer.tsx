@@ -25,6 +25,7 @@ export function Footer() {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap justify-center md:justify-start gap-6 font-mono text-xs font-bold uppercase tracking-widest">
+            <Link href="/legal/normativa" className="hover:text-[var(--color-neon-fuchsia)] transition-colors">Normativa</Link>
             <Link href="/legal/terms" className="hover:text-[var(--color-neon-fuchsia)] transition-colors">Aviso Legal</Link>
             <Link href="/legal/privacy" className="hover:text-[var(--color-neon-fuchsia)] transition-colors">Privacidad</Link>
             <Link href="/legal/data" className="hover:text-[var(--color-neon-fuchsia)] transition-colors">Datos</Link>

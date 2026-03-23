@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 export async function POST(req: Request) {
   try {
     const { quantity, message } = await req.json();
-    const origin = req.headers.get('origin') || 'http://localhost:3000';
+    const origin = req.headers.get('origin') || 'https://work-life-os.olianlabs.com';
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

@@ -62,7 +62,7 @@ export default function CalendarPage() {
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b-[3px] border-black pb-6 gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl md:text-6xl brutal-heading text-black">La Cuadrícula</h1>
-          <p className="text-gray-800 mt-2 md:mt-4 font-mono text-xs md:text-sm font-bold uppercase">Rastreador de Calendario Visual - Límite 221 Días.</p>
+          <p className="text-gray-800 mt-2 md:mt-4 font-mono text-xs md:text-sm font-bold uppercase">Rastreador de Calendario Visual - Límite 225 Días.</p>
         </div>
 
         <div className="flex flex-col items-end gap-6 w-full md:w-auto">

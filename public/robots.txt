@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://worklifeos.olianlabs.com/sitemap.xml
+Sitemap: https://work-life-os.olianlabs.com/sitemap.xml

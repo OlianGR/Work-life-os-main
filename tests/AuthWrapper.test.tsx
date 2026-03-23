@@ -38,16 +38,16 @@ describe('AuthWrapper Security Tests', () => {
     fireEvent.click(enterBtn);
 
     // Llenamos el formulario (esperamos a que aparezca)
-    const emailInput = await screen.findByPlaceholderText(/email@ejemplo.com/i);
-    const passwordInput = await screen.findByPlaceholderText(/••••••••/i);
-    const submitBtn = await screen.findByText(/Entrar al Panel/i);
+    const emailInput = await screen.findByPlaceholderText(/tu@email.com/i);
+    const passwordInput = await screen.findByPlaceholderText(/Tu contraseña/i);
+    const submitBtn = await screen.findByText(/Entrar ahora/i);
 
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
     
-    // Aceptamos términos
-    const legalCheckbox = screen.getByRole('checkbox');
-    fireEvent.click(legalCheckbox);
+    // Aceptamos términos (En modo login no hay checkbox de términos en este component, pero por si acaso lo dejamos si existe)
+    const legalCheckbox = screen.queryByRole('checkbox');
+    if (legalCheckbox) fireEvent.click(legalCheckbox);
     
     fireEvent.click(submitBtn);
 
@@ -68,24 +68,23 @@ describe('AuthWrapper Security Tests', () => {
     const enterBtn = await screen.findByText(/Entrar al Sistema/i);
     fireEvent.click(enterBtn);
     
-    const registerLink = await screen.findByText(/Regístrate gratis/i);
+    const registerLink = await screen.findByText(/Regístrate/i);
     fireEvent.click(registerLink);
 
-    const emailInput = await screen.findByPlaceholderText(/email@ejemplo.com/i);
-    const passwordInput = await screen.findByPlaceholderText(/••••••••/i);
-    const submitBtn = await screen.findByText(/Registrarme ahora/i);
+    const emailInput = await screen.findByPlaceholderText(/tu@email.com/i);
+    const passwordInput = await screen.findByPlaceholderText(/Mínimo 6 caracteres/i);
+    const submitBtn = await screen.findByText(/Crear mi cuenta/i);
     const form = emailInput.closest('form');
 
     fireEvent.change(emailInput, { target: { value: 'existing@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     
-    // Aceptamos términos
-    const legalCheckbox = screen.getByRole('checkbox');
-    fireEvent.click(legalCheckbox);
+    // Aceptamos términos (hay 2 checkboxes en registro)
+    const checkboxes = screen.getAllByRole('checkbox');
+    checkboxes.forEach(cb => fireEvent.click(cb));
     
-    // Disparamos el submit
-    fireEvent.submit(form!);
-
+    // Disparamos el click en el botón de submit
+    fireEvent.click(submitBtn);
 
     await waitFor(() => {
       expect(screen.getByText(/Se ha producido un error/i)).toBeInTheDocument();

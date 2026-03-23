@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useStore } from '@/store/useStore';
+import { format, subMonths, setDate, isSunday } from 'date-fns';
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { Activity, Clock, FileDown, ShieldCheck, Heart, BookOpen } from 'lucide-react';
+import { Activity, Clock, FileDown, ShieldCheck, Heart, BookOpen, Briefcase, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ExportModal } from '@/components/ExportModal';
 import { supabase } from '@/lib/supabase';
+import { getDashboardStats } from '@/lib/calculations';
 
 // New Dashboard Components
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -49,23 +51,18 @@ export default function Dashboard() {
 
   // --- BUSINESS LOGIC (Extracted for readability) ---
   const logsList = Object.values(logs) as any[];
-  const workedDays = logsList.filter(log => log.type === 'worked' || log.isWorkedHoliday).length;
-  const daysRemaining = Math.max(0, legalLimit - workedDays);
-  const progressPercent = Math.min(100, (workedDays / legalLimit) * 100);
-
-  const workedHolidays = logsList.filter(log => log.isWorkedHoliday).length;
-  const currentHolidayLimit = holidayLimit || 13;
-  const holidayProgress = Math.min(100, (workedHolidays / currentHolidayLimit) * 100);
-
-  const totalIncome = logsList.reduce((acc, log) => {
-    if ((log.type === 'worked' || log.isWorkedHoliday) && log.profileId) {
-      const profile = (profiles as any[]).find(p => p.id === log.profileId);
-      return acc + (profile?.rate || 0);
-    }
-    return acc;
-  }, 0);
-
-  const avgDayRate = workedDays > 0 ? totalIncome / workedDays : 0;
+  const stats = getDashboardStats(logsList, profiles, legalLimit, holidayLimit);
+  
+  const { 
+    workedDays, 
+    daysRemaining, 
+    progressPercent, 
+    workedHolidays, 
+    holidayProgress, 
+    totalIncome, 
+    totalPositionPlus, 
+    avgDayRate 
+  } = stats;
 
   // Chart Data Calculation
   const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -137,8 +134,10 @@ export default function Dashboard() {
         <StatsCard 
           title="Ingresos Totales"
           value={totalIncome.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
-          progress={60}
-          progressText="Objetivo: 100k €"
+          progressText={`PLUS PUESTO: ${totalPositionPlus.toLocaleString('es-ES')} €`}
+          backgroundColor="var(--color-electric-cyan)"
+          className="text-black"
+          icon={<TrendingUp className="w-5 h-5 opacity-50" />}
         />
         
         <StatsCard 
@@ -148,7 +147,7 @@ export default function Dashboard() {
           backgroundColor="var(--color-citrus-yellow)"
           icon={<Activity className="w-5 h-5 opacity-50" />}
         />
-
+        
         <StatsCard 
           title="Días Trabajados"
           value={workedDays}
@@ -163,12 +162,12 @@ export default function Dashboard() {
         <StatsCard 
           title="Festivos Trabajados"
           value={workedHolidays}
-          subtitle={`/ ${currentHolidayLimit}`}
+          subtitle={`/ ${holidayLimit || 13}`}
           backgroundColor="var(--color-neon-fuchsia)"
           className="text-white"
           icon={<Activity className="w-5 h-5" />}
           progress={holidayProgress}
-          progressText={`${currentHolidayLimit - workedHolidays} FALTAN`}
+          progressText={`${(holidayLimit || 13) - workedHolidays} FALTAN`}
           onClick={() => setShowHolidaysDetail(true)}
         />
       </div>
@@ -179,8 +178,12 @@ export default function Dashboard() {
           <h3 className="font-display font-bold text-xl mb-6">Mix de Ingresos</h3>
           <div className="space-y-6">
             {profiles.map((profile: any) => {
+              let count = 0;
               const profileIncome = Object.values(logs).reduce((acc: number, log: any) => {
-                if ((log.type === 'worked' || log.isWorkedHoliday) && log.profileId === profile.id) return acc + profile.rate;
+                if ((log.type === 'worked' || log.isWorkedHoliday) && log.profileId === profile.id) {
+                  count++;
+                  return acc + profile.rate + (profile.positionPlus || 0) + (((log.isWorkedHoliday || isSunday(new Date(log.date))) && ((profile.rate || 0) > 0 || (profile.positionPlus || 0) > 0)) ? 20 : 0);
+                }
                 return acc;
               }, 0);
               const percent = totalIncome > 0 ? (profileIncome / totalIncome) * 100 : 0;
@@ -196,7 +199,7 @@ export default function Dashboard() {
                       className="h-full border-r-2 border-black"
                       style={{ width: `${percent}%`, backgroundColor: profile.color }}
                     ></div>
-                    <span className="absolute left-2 top-1 text-[10px] font-bold">{percent.toFixed(0)}%</span>
+                    <span className="absolute left-2 top-1 text-[10px] font-bold">{count} {count === 1 ? 'vez' : 'veces'}</span>
                   </div>
                 </div>
               );
@@ -270,7 +273,7 @@ export default function Dashboard() {
                       {log.notes || '—'}
                     </td>
                     <td className="p-4 text-right font-mono font-black text-sm md:text-base">
-                      {profile ? (profile.rate + (log.isWorkedHoliday ? 20 : 0)).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) : '—'}
+                      {profile ? (profile.rate + (profile.positionPlus || 0) + ((log.isWorkedHoliday || isSunday(new Date(log.date))) ? 20 : 0)).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) : '—'}
                     </td>
                   </tr>
                 );

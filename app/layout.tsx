@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_ES',
-    url: 'https://worklifeos.olianlabs.com',
+    url: 'https://work-life-os.olianlabs.com',
     title: 'Work Life OS - Control Total para el Freelance',
     description: 'Optimiza tu vida laboral con IA. Control de jornadas y auditoría de ingresos en una interfaz neo-brutalista.',
     siteName: 'Work Life OS',
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  metadataBase: new URL('https://worklifeos.olianlabs.com'),
+  metadataBase: new URL('https://work-life-os.olianlabs.com'),
   icons: {
     icon: '/icon.svg',
     apple: '/icon.svg',

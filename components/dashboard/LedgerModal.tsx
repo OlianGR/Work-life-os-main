@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'motion/react';
 import { X, BookOpen } from 'lucide-react';
+import { calculateDailyIncome } from '@/lib/calculations';
 
 interface LedgerModalProps {
   isOpen: boolean;
@@ -12,6 +13,14 @@ interface LedgerModalProps {
 }
 
 export function LedgerModal({ isOpen, onClose, logs, profiles, totalIncome }: LedgerModalProps) {
+  const totalPositionPlus = Object.values(logs).reduce((acc: number, log: any) => {
+    if ((log.type === 'worked' || log.isWorkedHoliday) && log.profileId) {
+      const profile = profiles.find((p: any) => p.id === log.profileId);
+      return acc + (profile?.positionPlus || 0);
+    }
+    return acc;
+  }, 0);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -93,7 +102,7 @@ export function LedgerModal({ isOpen, onClose, logs, profiles, totalIncome }: Le
                               </div>
                             </td>
                             <td className={`p-6 text-right font-mono font-black text-xl group-hover:scale-110 transition-transform origin-right ${isActive ? 'text-black' : 'text-gray-300'}`}>
-                              {profile ? (profile.rate + (log.isWorkedHoliday ? 20 : 0)).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) : '—'}
+                              {calculateDailyIncome(log, profile).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
                             </td>
                           </tr>
                         );
@@ -115,7 +124,7 @@ export function LedgerModal({ isOpen, onClose, logs, profiles, totalIncome }: Le
                         <div className="flex justify-between items-start mb-3">
                           <span className="font-mono font-black text-xs bg-black text-white px-2 py-1">{log.date}</span>
                           <span className="text-lg font-mono font-black">
-                            {profile ? (profile.rate + (log.isWorkedHoliday ? 20 : 0)).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) : '—'}
+                            {calculateDailyIncome(log, profile).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -147,6 +156,12 @@ export function LedgerModal({ isOpen, onClose, logs, profiles, totalIncome }: Le
                   <div className="flex flex-col">
                     <span className="text-[8px] font-mono font-black uppercase text-gray-400">Registros Totales</span>
                     <span className="font-display font-black text-xl leading-none">{Object.keys(logs).length}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-mono font-black uppercase text-gray-400">Total Plus Puesto</span>
+                    <span className="font-display font-black text-xl leading-none text-[var(--color-electric-cyan)]">
+                      {totalPositionPlus.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                    </span>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[8px] font-mono font-black uppercase text-gray-400">Total Ingresos Brutos</span>
