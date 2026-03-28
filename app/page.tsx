@@ -3,7 +3,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useStore } from '@/store/useStore';
 import { format, subMonths, setDate } from 'date-fns';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Activity, Clock, FileDown, ShieldCheck, Heart, BookOpen, Briefcase, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';

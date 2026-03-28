@@ -11,8 +11,8 @@ export default function NormativaPage() {
       animate={{ opacity: 1, y: 0 }}
       className="max-w-4xl mx-auto py-12 px-4"
     >
-      <Link 
-        href="/" 
+      <Link
+        href="/"
         className="inline-flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest mb-8 hover:text-[var(--color-neon-fuchsia)] transition-colors"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -39,7 +39,7 @@ export default function NormativaPage() {
           <div className="space-y-4 font-mono text-sm leading-relaxed text-gray-700">
             <p className="font-bold text-lg text-black">¿Por qué 225 días?</p>
             <p>
-              Aunque el estándar de 40h suele situarse en 221 días, para <strong>jornadas intensivas o de 35h semanales</strong>, el cómputo de días laborables efectivos puede ajustarse hasta los 225 días anuales, dependiendo del convenio colectivo y la distribución de horas.
+              Aunque el estándar de 40h suele situarse en 225 días, para <strong>jornadas intensivas o de 35h semanales</strong>, el cómputo de días laborables efectivos puede ajustarse hasta los 225 días anuales, dependiendo del convenio colectivo y la distribución de horas.
             </p>
             <div className="bg-gray-100 p-4 border border-black space-y-2">
               <p className="font-black uppercase tracking-widest text-xs">Cálculo 35h semanales:</p>

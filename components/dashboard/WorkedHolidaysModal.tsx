@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Activity, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { calculateDailyIncome } from '@/lib/calculations';

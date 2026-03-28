@@ -216,13 +216,13 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="font-mono text-[10px] font-bold uppercase tracking-widest block mb-1 text-gray-500">Etiqueta de Color</label>
-                <div className="flex gap-3">
+                <label className="font-mono text-[10px] font-bold uppercase tracking-widest block mb-2 text-gray-500">Etiqueta de Color</label>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {colors.map(c => (
                     <button
                       key={c}
                       onClick={() => updateProfile(profile.id, { color: c })}
-                      className={`w-8 h-8 rounded-full border-2 border-black transition-transform ${profile.color === c ? 'scale-125 shadow-brutal-sm ring-2 ring-black ring-offset-2' : 'hover:scale-110'
+                      className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full border-2 border-black transition-transform shrink-0 ${profile.color === c ? 'scale-110 shadow-brutal-sm ring-2 ring-black ring-offset-2' : 'hover:scale-110'
                         }`}
                       style={{ backgroundColor: c }}
                     />
@@ -285,12 +285,12 @@ export default function SettingsPage() {
 
               <div>
                 <label className="font-mono text-xs font-bold uppercase tracking-widest block mb-2 text-gray-500">Etiqueta de Color</label>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {colors.map(c => (
                     <button
                       key={c}
                       onClick={() => setNewProfile({ ...newProfile, color: c })}
-                      className={`w-8 h-8 rounded-full border-2 border-black transition-transform ${newProfile.color === c ? 'scale-125 shadow-brutal-sm ring-2 ring-black ring-offset-2' : 'hover:scale-110'
+                      className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full border-2 border-black transition-transform shrink-0 ${newProfile.color === c ? 'scale-110 shadow-brutal-sm ring-2 ring-black ring-offset-2' : 'hover:scale-110'
                         }`}
                       style={{ backgroundColor: c }}
                     />

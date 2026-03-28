@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileDown, Calendar, Check } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import jsPDF from 'jspdf';

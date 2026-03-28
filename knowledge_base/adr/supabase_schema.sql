@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS daily_logs (
 -- 4. Create User Settings Table
 CREATE TABLE IF NOT EXISTS user_settings (
   user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  legal_limit INTEGER DEFAULT 221,
+  legal_limit INTEGER DEFAULT 225,
   holiday_limit INTEGER DEFAULT 13,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

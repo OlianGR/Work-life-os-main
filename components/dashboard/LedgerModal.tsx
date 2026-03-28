@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, BookOpen } from 'lucide-react';
 import { calculateDailyIncome } from '@/lib/calculations';
 
