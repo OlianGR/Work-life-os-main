@@ -322,8 +322,9 @@ export default function AuditorPage() {
         status: 'ERROR',
         details: 'Error en el procesamiento: ' + (error.message || 'Error desconocido'),
         breakdown: {
-          baseSalary: 0, seniority: 0, incentives: 0, positionPlus: 0, holidayPlus: 0,
-          postHolidayPlus: 0, transportPlus: 0, clothingPlus: 0, grossTotal: 0, netTotal: 0,
+          baseSalary: 0, seniority: 0, toxicPlus: 0, convenioPlus: 0, incentives: 0, 
+          positionPlus: 0, holidayPlus: 0, postHolidayPlus: 0, extraHoursTotal: 0,
+          transportPlus: 0, clothingPlus: 0, grossTotal: 0, netTotal: 0,
           offDaysCount: 0,
           holidayDaysDetail: []
         }
