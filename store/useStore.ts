@@ -14,10 +14,13 @@ export type ContractDetails = {
   baseSalary: number;
   seniority: number;
   postHolidayPlus: number;
+  toxicPlus: number;
+  convenioPlus: number;
   transportPlus: number;
   clothingPlus: number;
   taxRate: number; // Percentage
   socialSecurityRate: number; // Percentage
+  holidayPlusAmount: number;
 };
 
 export type LogType = 'worked' | 'off' | 'holiday';
@@ -28,6 +31,8 @@ export type WorkLog = {
   profileId?: string; // Only if type === 'worked' or worked holiday
   notes?: string;
   isWorkedHoliday?: boolean;
+  extraHours?: number;
+  extraHoursRate?: number;
 };
 
 interface AppState {
@@ -73,10 +78,13 @@ export const useStore = create<AppState>((set, get) => ({
     baseSalary: 1200,
     seniority: 0,
     postHolidayPlus: 0,
+    toxicPlus: 0,
+    convenioPlus: 0,
     transportPlus: 0,
     clothingPlus: 0,
     taxRate: 15,
     socialSecurityRate: 6.35,
+    holidayPlusAmount: 20,
   },
   logs: {},
   legalLimit: 225,
@@ -92,10 +100,13 @@ export const useStore = create<AppState>((set, get) => ({
         baseSalary: 1200,
         seniority: 0,
         postHolidayPlus: 0,
+        toxicPlus: 0,
+        convenioPlus: 0,
         transportPlus: 0,
         clothingPlus: 0,
         taxRate: 15,
         socialSecurityRate: 6.35,
+        holidayPlusAmount: 20,
       }
     });
   },
@@ -132,7 +143,9 @@ export const useStore = create<AppState>((set, get) => ({
         type: l.type as LogType,
         profileId: l.profile_id,
         notes: l.notes,
-        isWorkedHoliday: l.is_worked_holiday
+        isWorkedHoliday: l.is_worked_holiday,
+        extraHours: Number(l.extra_hours || 0),
+        extraHoursRate: Number(l.extra_hours_rate || 0)
       };
     });
 
@@ -148,10 +161,13 @@ export const useStore = create<AppState>((set, get) => ({
         baseSalary: Number(contract.base_salary),
         seniority: Number(contract.seniority),
         postHolidayPlus: Number(contract.post_holiday_plus),
+        toxicPlus: Number(contract.toxic_plus || 0),
+        convenioPlus: Number(contract.convenio_plus || 0),
         transportPlus: Number(contract.transport_plus),
         clothingPlus: Number(contract.clothing_plus),
         taxRate: Number(contract.tax_rate),
         socialSecurityRate: Number(contract.social_security_rate),
+        holidayPlusAmount: Number(contract.holiday_plus_amount || 20),
       } : get().contractDetails,
       legalLimit: contract?.legal_limit || 225,
       holidayLimit: contract?.holiday_limit || 13,
@@ -230,10 +246,13 @@ export const useStore = create<AppState>((set, get) => ({
     if (details.baseSalary !== undefined) updatePayload.base_salary = details.baseSalary;
     if (details.seniority !== undefined) updatePayload.seniority = details.seniority;
     if (details.postHolidayPlus !== undefined) updatePayload.post_holiday_plus = details.postHolidayPlus;
+    if (details.toxicPlus !== undefined) updatePayload.toxic_plus = details.toxicPlus;
+    if (details.convenioPlus !== undefined) updatePayload.convenio_plus = details.convenioPlus;
     if (details.transportPlus !== undefined) updatePayload.transport_plus = details.transportPlus;
     if (details.clothingPlus !== undefined) updatePayload.clothing_plus = details.clothingPlus;
     if (details.taxRate !== undefined) updatePayload.tax_rate = details.taxRate;
     if (details.socialSecurityRate !== undefined) updatePayload.social_security_rate = details.socialSecurityRate;
+    if (details.holidayPlusAmount !== undefined) updatePayload.holiday_plus_amount = details.holidayPlusAmount;
 
     const { error } = await supabase
       .from('contract_details')
@@ -259,7 +278,9 @@ export const useStore = create<AppState>((set, get) => ({
         type: log.type,
         profile_id: log.profileId,
         notes: log.notes,
-        is_worked_holiday: log.isWorkedHoliday
+        is_worked_holiday: log.isWorkedHoliday,
+        extra_hours: log.extraHours,
+        extra_hours_rate: log.extraHoursRate
       }, { onConflict: 'user_id,date' });
 
     if (!error) {

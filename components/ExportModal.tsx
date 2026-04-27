@@ -73,6 +73,12 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
         doc.setFont('helvetica', 'bold');
         doc.text(monthName, 14, currentY);
         currentY += 10;
+        const monthStats = {
+          totalIncome: 0,
+          totalPositionPlus: 0,
+          totalExtraHours: 0,
+          totalExtraIncome: 0,
+        };
         const summaryData: Record<string, { count: number; total: number }> = {};
 
         const tableData = monthLogs.map(([date, log]: [string, any]) => {
@@ -85,7 +91,18 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
           else if (log.type === 'holiday') typeLabel = "FESTIVO (LIBRE)";
           else if (log.type === 'off') typeLabel = "LIBRE";
 
+          if (log.extraHours > 0) {
+            typeLabel += ` (+${log.extraHours}H EXTRAS)`;
+          }
+
           const income = calculateDailyIncome(log, profile);
+          const positionPlus = (profile && isWorked) ? (profile.positionPlus || 0) : 0;
+          const extraIncome = (log.extraHours || 0) * (log.extraHoursRate || 0);
+
+          monthStats.totalIncome += income;
+          monthStats.totalPositionPlus += positionPlus;
+          monthStats.totalExtraHours += (log.extraHours || 0);
+          monthStats.totalExtraIncome += extraIncome;
 
           if (profile && isWorked) {
             if (!summaryData[profile.name]) summaryData[profile.name] = { count: 0, total: 0 };
@@ -104,40 +121,69 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
 
         autoTable(doc, {
           startY: currentY,
-          head: [['Fecha', 'Tipo', 'Rol/Perfil', 'Importe', 'Notas']],
+          head: [['Fecha', 'Tipo de Jornada', 'Perfil', 'Importe', 'Notas']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
-          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [30, 30, 30], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 8, cellPadding: 3 },
           columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 40 },
+            0: { cellWidth: 22 },
+            1: { cellWidth: 45 },
             2: { cellWidth: 35 },
             3: { cellWidth: 20 },
             4: { cellWidth: 'auto' }
           }
         });
 
-        currentY = (doc as any).lastAutoTable.finalY + 8;
+        currentY = (doc as any).lastAutoTable.finalY + 10;
 
-        // Add Summary for the month
-        doc.setFontSize(10);
+        // Prepare Summary Table Data
+        const summaryRows = [
+          ...Object.entries(summaryData).map(([name, data]) => [
+            `Total Perfil: ${name}`,
+            `${data.count} días`,
+            `${data.total.toLocaleString('es-ES')} €`
+          ]),
+          ['TOTAL PLUS DE PUESTO', '—', `${monthStats.totalPositionPlus.toLocaleString('es-ES')} €`],
+          ['TOTAL HORAS EXTRAS', `${monthStats.totalExtraHours}h`, `${monthStats.totalExtraIncome.toLocaleString('es-ES')} €`],
+          ['TOTAL FACTURADO MES', '—', `${monthStats.totalIncome.toLocaleString('es-ES')} €`]
+        ];
+
+        // Ensure we have enough space for summary, or add page
+        if (currentY > 230) {
+          doc.addPage();
+          currentY = 20;
+        }
+
+        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.text("RESUMEN MENSUAL POR CATEGORÍA:", 14, currentY);
-        currentY += 6;
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        Object.entries(summaryData).forEach(([name, data]) => {
-          const line = `${name}: ${data.count} días - Total: ${data.total.toLocaleString('es-ES')} €`;
-          doc.text(line, 20, currentY);
-          currentY += 5;
+        doc.text("RESUMEN ECONÓMICO DEL MES", 14, currentY);
+        currentY += 4;
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [['Concepto', 'Detalle', 'Subtotal']],
+          body: summaryRows,
+          theme: 'striped',
+          headStyles: { fillColor: [100, 100, 100], textColor: [255, 255, 255] },
+          styles: { fontSize: 9, cellPadding: 3 },
+          didParseCell: (data) => {
+            // Style the last 3 rows (totals)
+            const isTotalRow = data.row.index >= Object.keys(summaryData).length;
+            if (isTotalRow) {
+              data.cell.styles.fontStyle = 'bold';
+              if (data.row.index === summaryRows.length - 1) {
+                data.cell.styles.fillColor = [240, 248, 255]; // Light blue for final total
+                data.cell.styles.textColor = [0, 50, 150];
+              }
+            }
+          }
         });
 
-        currentY += 10;
+        currentY = (doc as any).lastAutoTable.finalY + 15;
 
-        // Add page if needed
-        if (currentY > 240 && month !== sortedMonths[sortedMonths.length - 1]) {
+        // Add page break if there's another month
+        if (month !== sortedMonths[sortedMonths.length - 1]) {
           doc.addPage();
           currentY = 20;
         }

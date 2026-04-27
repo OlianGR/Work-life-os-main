@@ -11,7 +11,7 @@ const emptySubscribe = () => () => { };
 
 export default function SettingsPage() {
   const isClient = useSyncExternalStore(emptySubscribe, () => true, () => false);
-  const { profiles, addProfile, updateProfile, deleteProfile, legalLimit, setLegalLimit, holidayLimit, setHolidayLimit } = useStore();
+  const { profiles, addProfile, updateProfile, deleteProfile, legalLimit, setLegalLimit, holidayLimit, setHolidayLimit, contractDetails, updateContract } = useStore();
   const [newProfile, setNewProfile] = useState<Omit<ShiftProfile, 'id'>>({
     name: '',
     rate: 0,
@@ -338,6 +338,77 @@ export default function SettingsPage() {
           />
         </div>
       </div>
+      <div className="pt-8 border-t-[4px] border-black">
+        <div className="flex items-center gap-3 mb-6 font-display">
+          <Save className="w-8 h-8 text-[var(--color-citrus-yellow)]" />
+          <h2 className="text-3xl font-bold uppercase tracking-tight">Parámetros de Nómina</h2>
+        </div>
+
+        <div className="brutal-card p-6 bg-white border-[3px] border-black space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <SettingsField
+              label="Salario Base"
+              value={contractDetails.baseSalary}
+              onChange={(v) => updateContract({ baseSalary: v })}
+              unit="€"
+            />
+            <SettingsField
+              label="Antigüedad"
+              value={contractDetails.seniority}
+              onChange={(v) => updateContract({ seniority: v })}
+              unit="€"
+            />
+            <SettingsField
+              label="Plus Tóxico"
+              value={contractDetails.toxicPlus}
+              onChange={(v) => updateContract({ toxicPlus: v })}
+              unit="€"
+            />
+            <SettingsField
+              label="Plus Convenio"
+              value={contractDetails.convenioPlus}
+              onChange={(v) => updateContract({ convenioPlus: v })}
+              unit="€"
+            />
+            <SettingsField
+              label="Plus Transporte"
+              value={contractDetails.transportPlus}
+              onChange={(v) => updateContract({ transportPlus: v })}
+              unit="€"
+            />
+            <SettingsField
+              label="Plus Vestuario"
+              value={contractDetails.clothingPlus}
+              onChange={(v) => updateContract({ clothingPlus: v })}
+              unit="€"
+            />
+            <SettingsField
+              label="Importe Plus Festivo"
+              value={contractDetails.holidayPlusAmount}
+              onChange={(v) => updateContract({ holidayPlusAmount: v })}
+              unit="€"
+            />
+            <SettingsField
+              label="Plus Post-Festivo"
+              value={contractDetails.postHolidayPlus}
+              onChange={(v) => updateContract({ postHolidayPlus: v })}
+              unit="€"
+            />
+            <SettingsField
+              label="IRPF (%)"
+              value={contractDetails.taxRate}
+              onChange={(v) => updateContract({ taxRate: v })}
+              unit="%"
+            />
+            <SettingsField
+              label="Seg. Social (%)"
+              value={contractDetails.socialSecurityRate}
+              onChange={(v) => updateContract({ socialSecurityRate: v })}
+              unit="%"
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="pt-8 border-t-[4px] border-black">
         <div className="flex items-center gap-3 mb-6 font-display">
@@ -514,5 +585,23 @@ export default function SettingsPage() {
         </div>
       </div>
     </motion.div>
+  );
+}
+
+// Helper Components
+function SettingsField({ label, value, onChange, unit }: { label: string, value: number, onChange: (v: number) => void, unit: string }) {
+  return (
+    <div className="flex flex-col gap-1.5 group">
+      <label className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 group-focus-within:text-black transition-colors">{label}</label>
+      <div className="relative">
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="brutal-input w-full pr-10 font-bold tabular-nums focus-ring"
+        />
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-gray-300 pointer-events-none group-focus-within:text-black">{unit}</span>
+      </div>
+    </div>
   );
 }

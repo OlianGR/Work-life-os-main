@@ -9,6 +9,7 @@ import { useDropzone } from 'react-dropzone';
 import { format, subMonths, setDate, addDays } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { supabase } from '@/lib/supabase';
 
 type AuditResult = {
   payslipTotal: number;
@@ -19,10 +20,13 @@ type AuditResult = {
   breakdown: {
     baseSalary: number;
     seniority: number;
+    toxicPlus: number;
+    convenioPlus: number;
     incentives: number; // Sum of profile rates
     positionPlus: number; // Sum of profile positionPlus
     holidayPlus: number; // Bonus for Sundays
     postHolidayPlus: number;
+    extraHoursTotal: number;
     transportPlus: number;
     clothingPlus: number;
     grossTotal: number;
@@ -34,6 +38,19 @@ type AuditResult = {
     periodo: string;
     empresa_cif: string;
     total_devengado: number;
+    concepts: {
+      salario_base?: number;
+      antiguedad?: number;
+      plus_toxico?: number;
+      plus_convenio?: number;
+      plus_transporte?: number;
+      plus_vestuario?: number;
+      incentivos?: number;
+      plus_festivos?: number;
+      plus_post_festivo?: number;
+      plus_puesto?: number;
+      horas_extras?: number;
+    };
   };
 };
 
@@ -62,53 +79,92 @@ export default function AuditorPage() {
     const dateStr = format(new Date(), 'dd/MM/yyyy HH:mm');
 
     // Header
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
-    doc.text('INFORME DE AUDITORÍA DE NÓMINA', 14, 20);
+    doc.text('INFORME DE AUDITORÍA', 14, 25);
     doc.setFontSize(10);
-    doc.text(`Generado el: ${dateStr}`, 14, 28);
-    doc.text(`Periodo: ${format(new Date(startDate), 'dd/MM/yyyy')} - ${format(new Date(endDate), 'dd/MM/yyyy')}`, 14, 34);
+    doc.text(`Work-Life OS • ${dateStr}`, 14, 33);
 
-    // Summary Table
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text(`Periodo Analizado: ${format(new Date(startDate), 'dd/MM/yyyy')} - ${format(new Date(endDate), 'dd/MM/yyyy')}`, 14, 50);
+    if (audit.extractedDetails?.periodo) {
+      doc.text(`Periodo Detectado en Nómina: ${audit.extractedDetails.periodo}`, 14, 56);
+    }
+
+    // Summary Comparison Table
     autoTable(doc, {
-      startY: 45,
-      head: [['Concepto', 'Nómina Extraída', 'Cálculo App', 'Diferencia']],
+      startY: 65,
+      head: [['Concepto General', 'Valor App', 'Valor Nómina', 'Diferencia']],
       body: [
-        ['Total Líquido', `${audit.payslipTotal.toFixed(2)}€`, `${audit.appTotal.toFixed(2)}€`, `${audit.difference.toFixed(2)}€`],
+        [
+          'TOTAL LÍQUIDO (NETO)', 
+          `${audit.appTotal.toFixed(2)}€`, 
+          `${audit.payslipTotal.toFixed(2)}€`, 
+          { 
+            content: `${audit.difference.toFixed(2)}€`, 
+            styles: { fontStyle: 'bold', textColor: audit.status === 'MATCH' ? [0, 128, 0] : [255, 0, 0] } 
+          }
+        ],
       ],
       theme: 'grid',
       headStyles: { fillColor: [0, 0, 0] },
     });
 
-    // Detailed Breakdown Table
+    // Concepts Comparison Table
     doc.setFontSize(14);
-    doc.text('Desglose Detallado (Cálculo App)', 14, (doc as any).lastAutoTable.finalY + 15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Desglose Comparativo de Conceptos', 14, (doc as any).lastAutoTable.finalY + 15);
+    doc.setFont('helvetica', 'normal');
 
+    const aiConcepts = audit.extractedDetails?.concepts || {};
+    
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 20,
-      head: [['Concepto', 'Importe']],
+      head: [['Concepto Salarial', 'Cálculo App', 'Extracción IA', 'Estado']],
       body: [
-        ['Salario Base', `${audit.breakdown.baseSalary.toFixed(2)}€`],
-        ['Antigüedad', `${audit.breakdown.seniority.toFixed(2)}€`],
-        ['Incentivos (Calendario)', `${audit.breakdown.incentives.toFixed(2)}€`],
-        ['Plus Puesto de Trabajo', `${audit.breakdown.positionPlus.toFixed(2)}€`],
-        ['Plus Festivos', `${audit.breakdown.holidayPlus.toFixed(2)}€`],
-        ['Plus Post-Festivo', `${audit.breakdown.postHolidayPlus.toFixed(2)}€`],
-        ['Plus Transporte', `${audit.breakdown.transportPlus.toFixed(2)}€`],
-        ['Plus Vestuario', `${audit.breakdown.clothingPlus.toFixed(2)}€`],
-        ['Días Libres disfrutados', `${audit.breakdown.offDaysCount} días`],
-        ['Total Bruto', `${audit.breakdown.grossTotal.toFixed(2)}€`],
-        ['Líquido Neto', `${audit.breakdown.netTotal.toFixed(2)}€`],
+        ['Salario Base', `${audit.breakdown.baseSalary.toFixed(2)}€`, `${(aiConcepts.salario_base || 0).toFixed(2)}€`, getStatus(audit.breakdown.baseSalary, aiConcepts.salario_base)],
+        ['Antigüedad', `${audit.breakdown.seniority.toFixed(2)}€`, `${(aiConcepts.antiguedad || 0).toFixed(2)}€`, getStatus(audit.breakdown.seniority, aiConcepts.antiguedad)],
+        ['Plus Puesto de Trabajo', `${audit.breakdown.positionPlus.toFixed(2)}€`, `${(aiConcepts.plus_puesto || 0).toFixed(2)}€`, getStatus(audit.breakdown.positionPlus, aiConcepts.plus_puesto)],
+        ['Horas Extraordinarias', `${audit.breakdown.extraHoursTotal.toFixed(2)}€`, `${(aiConcepts.horas_extras || 0).toFixed(2)}€`, getStatus(audit.breakdown.extraHoursTotal, aiConcepts.horas_extras)],
+        ['Plus Festivos', `${audit.breakdown.holidayPlus.toFixed(2)}€`, `${(aiConcepts.plus_festivos || 0).toFixed(2)}€`, getStatus(audit.breakdown.holidayPlus, aiConcepts.plus_festivos)],
+        ['Plus Transporte/Dist.', `${audit.breakdown.transportPlus.toFixed(2)}€`, `${(aiConcepts.plus_transporte || 0).toFixed(2)}€`, getStatus(audit.breakdown.transportPlus, aiConcepts.plus_transporte)],
+        ['Plus Vestuario/Herr.', `${audit.breakdown.clothingPlus.toFixed(2)}€`, `${(aiConcepts.plus_vestuario || 0).toFixed(2)}€`, getStatus(audit.breakdown.clothingPlus, aiConcepts.plus_vestuario)],
+        ['Incentivos/Pluses', `${audit.breakdown.incentives.toFixed(2)}€`, `${(aiConcepts.incentivos || 0).toFixed(2)}€`, getStatus(audit.breakdown.incentives, aiConcepts.incentivos)],
       ],
       theme: 'striped',
+      headStyles: { fillColor: [60, 60, 60] },
+      columnStyles: {
+        3: { fontStyle: 'bold' }
+      }
     });
 
-    // Verification Result
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
-    doc.setFontSize(12);
-    doc.setTextColor(audit.status === 'MATCH' ? 'green' : 'red');
-    doc.text(`RESULTADO: ${audit.details}`, 14, finalY);
+    function getStatus(app: number, ai?: number) {
+      if (ai === undefined || ai === 0 && app === 0) return 'OK';
+      const diff = Math.abs(app - ai);
+      return diff < 0.5 ? 'OK' : 'REVISAR';
+    }
 
-    doc.save(`Auditoria_Nomina_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+    // Verdict Footer
+    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    doc.setDrawColor(0);
+    doc.setLineWidth(1);
+    doc.line(14, finalY, 196, finalY);
+    
+    doc.setFontSize(12);
+    const resultColor = audit.status === 'MATCH' ? [0, 100, 0] : [150, 0, 0];
+    doc.setTextColor(resultColor[0], resultColor[1], resultColor[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`RESULTADO FINAL: ${audit.status === 'MATCH' ? 'COINCIDENCIA EXITOSA' : 'DISCREPANCIA DETECTADA'}`, 14, finalY + 10);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Este documento es una auditoría generada automáticamente por IA y debe ser validada por un profesional.', 14, finalY + 20);
+
+    doc.save(`Auditoria_${format(new Date(), 'yyyyMMdd')}.pdf`);
   };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -146,11 +202,16 @@ export default function AuditorPage() {
       let positionPlus = 0;
       let holidayPlus = 0;
       let postHolidayPlus = 0;
+      let extraHoursTotal = 0;
       let offDaysCount = 0;
       const holidayDaysDetail: Array<{ date: string; profileName: string; notes?: string }> = [];
 
       Object.values(logs).forEach((log) => {
         if (log.date >= startDate && log.date <= endDate) {
+          // Extra hours calculation
+          if (log.extraHours && log.extraHoursRate) {
+            extraHoursTotal += log.extraHours * log.extraHoursRate;
+          }
 
           const isWorkedHol = log.type === 'holiday' && log.isWorkedHoliday;
 
@@ -162,10 +223,12 @@ export default function AuditorPage() {
 
               // Plus festivos (specifically marked worked holidays)
               if (isWorkedHol) {
+                const amount = contractDetails.holidayPlusAmount || 20;
+                holidayPlus += amount;
                 holidayDaysDetail.push({
                   date: log.date,
                   profileName: profile.name,
-                  notes: log.notes
+                  notes: log.notes + ` (+${amount}€)`
                 });
               }
             }
@@ -184,10 +247,13 @@ export default function AuditorPage() {
 
       const grossTotal = contractDetails.baseSalary +
         contractDetails.seniority +
+        contractDetails.toxicPlus +
+        contractDetails.convenioPlus +
         incentives +
         positionPlus +
         holidayPlus +
         postHolidayPlus +
+        extraHoursTotal +
         contractDetails.transportPlus +
         contractDetails.clothingPlus;
 
@@ -198,10 +264,13 @@ export default function AuditorPage() {
       const breakdown = {
         baseSalary: contractDetails.baseSalary,
         seniority: contractDetails.seniority,
+        toxicPlus: contractDetails.toxicPlus,
+        convenioPlus: contractDetails.convenioPlus,
         incentives,
         positionPlus,
         holidayPlus,
         postHolidayPlus,
+        extraHoursTotal,
         transportPlus: contractDetails.transportPlus,
         clothingPlus: contractDetails.clothingPlus,
         grossTotal,
@@ -217,9 +286,17 @@ export default function AuditorPage() {
       reader.onload = async () => {
         const base64Data = (reader.result as string).split(',')[1];
 
+        // Obtener el token de sesión
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
         const response = await fetch('/api/audit', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          credentials: 'include',
           body: JSON.stringify({
             fileData: base64Data,
             mimeType: file.type,
@@ -356,6 +433,18 @@ export default function AuditorPage() {
                       unit="€"
                     />
                     <ContractField
+                      label="Plus Tóxico / Penosidad"
+                      value={contractDetails.toxicPlus}
+                      onChange={(v) => updateContract({ toxicPlus: v })}
+                      unit="€"
+                    />
+                    <ContractField
+                      label="Plus Convenio"
+                      value={contractDetails.convenioPlus}
+                      onChange={(v) => updateContract({ convenioPlus: v })}
+                      unit="€"
+                    />
+                    <ContractField
                       label="Plus de Transporte"
                       value={contractDetails.transportPlus}
                       onChange={(v) => updateContract({ transportPlus: v })}
@@ -365,6 +454,12 @@ export default function AuditorPage() {
                       label="Plus de Vestuario"
                       value={contractDetails.clothingPlus}
                       onChange={(v) => updateContract({ clothingPlus: v })}
+                      unit="€"
+                    />
+                    <ContractField
+                      label="Importe Plus Festivo"
+                      value={contractDetails.holidayPlusAmount}
+                      onChange={(v) => updateContract({ holidayPlusAmount: v })}
                       unit="€"
                     />
                   </div>
@@ -641,14 +736,18 @@ export default function AuditorPage() {
 
                       {/* The Check / Rows */}
                       <div className="space-y-4 font-mono text-xs mb-10 z-10 relative italic">
-                         <Row label="Salario Base" value={result.breakdown.baseSalary} />
-                         <Row label="Antigüedad" value={result.breakdown.seniority} />
-                         <Row label="Incentivos x Perfil" value={result.breakdown.incentives} />
-                         <Row label="Plus Puesto" value={result.breakdown.positionPlus} />
+                         <Row label="Salario Base" value={result.breakdown.baseSalary} extracted={result.extractedDetails?.concepts?.salario_base} />
+                         <Row label="Antigüedad" value={result.breakdown.seniority} extracted={result.extractedDetails?.concepts?.antiguedad} />
+                         <Row label="Plus Tóxico" value={result.breakdown.toxicPlus} extracted={result.extractedDetails?.concepts?.plus_toxico} />
+                         <Row label="Plus Convenio" value={result.breakdown.convenioPlus} extracted={result.extractedDetails?.concepts?.plus_convenio} />
+                         <Row label="Incentivos x Perfil" value={result.breakdown.incentives} extracted={result.extractedDetails?.concepts?.incentivos} />
+                         <Row label="Plus Puesto" value={result.breakdown.positionPlus} extracted={result.extractedDetails?.concepts?.plus_puesto} />
+                         <Row label="Horas Extras" value={result.breakdown.extraHoursTotal} extracted={result.extractedDetails?.concepts?.horas_extras} />
                          <div className="relative group/festivos">
                            <Row
                              label="Plus Festivos"
                              value={result.breakdown.holidayPlus}
+                             extracted={result.extractedDetails?.concepts?.plus_festivos}
                              isSpecial
                              onClick={() => setShowFestivosDetail(!showFestivosDetail)}
                              isOpen={showFestivosDetail}
@@ -665,15 +764,15 @@ export default function AuditorPage() {
                                    <div key={idx} className="flex justify-between items-center opacity-60">
                                      <span>{format(new Date(day.date), 'dd/MM')}</span>
                                      <span className="font-bold truncate px-2">{day.profileName}</span>
-                                     <span className="font-black text-black">+20.00</span>
+                                     <span className="font-black text-black">+{ (contractDetails.holidayPlusAmount || 20).toFixed(2) }</span>
                                    </div>
                                  ))}
                                </motion.div>
                              )}
                            </AnimatePresence>
                          </div>
-                         <Row label="Pluses Conv./Vest." value={result.breakdown.transportPlus + result.breakdown.clothingPlus} />
-                         <Row label="Post-Festivos" value={result.breakdown.postHolidayPlus} />
+                         <Row label="Pluses Conv./Vest." value={result.breakdown.transportPlus + result.breakdown.clothingPlus} extracted={(result.extractedDetails?.concepts?.plus_transporte || 0) + (result.extractedDetails?.concepts?.plus_vestuario || 0)} />
+                         <Row label="Post-Festivos" value={result.breakdown.postHolidayPlus} extracted={result.extractedDetails?.concepts?.plus_post_festivo} />
                          <div className="flex justify-between items-center py-1 opacity-60">
                             <span>Días Libres (Informativo)</span>
                             <span className="font-bold">{result.breakdown.offDaysCount} Días</span>
@@ -784,7 +883,9 @@ function ComparisonBox({ label, value, status, icon }: { label: string, value: n
   );
 }
 
-function Row({ label, value, isSpecial, onClick, isOpen }: { label: string, value: number, isSpecial?: boolean, onClick?: () => void, isOpen?: boolean }) {
+function Row({ label, value, extracted, isSpecial, onClick, isOpen }: { label: string, value: number, extracted?: number, isSpecial?: boolean, onClick?: () => void, isOpen?: boolean }) {
+  const hasDiff = extracted !== undefined && Math.abs(value - extracted) > 0.1;
+  
   return (
     <div
       onClick={onClick}
@@ -795,10 +896,18 @@ function Row({ label, value, isSpecial, onClick, isOpen }: { label: string, valu
       <div className="flex items-center gap-2">
          <span className={`${isSpecial ? 'font-black' : 'text-gray-600'}`}>{label}</span>
          {isSpecial && <PlusCircle className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-45 text-[var(--color-neon-fuchsia)]' : 'text-black'}`} />}
+         {hasDiff && <AlertTriangle className="w-3 h-3 text-[var(--color-neon-fuchsia)] animate-pulse" />}
       </div>
-      <span className={`font-bold tabular-nums ${isSpecial ? 'underline decoration-black/10' : ''}`}>
-        {value.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
-      </span>
+      <div className="flex items-center gap-4">
+        {extracted !== undefined && (
+          <span className="text-[10px] text-gray-400 line-through opacity-50">
+            {extracted.toFixed(2)}€
+          </span>
+        )}
+        <span className={`font-bold tabular-nums ${isSpecial ? 'underline decoration-black/10' : ''} ${hasDiff ? 'text-[var(--color-neon-fuchsia)]' : ''}`}>
+          {value.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+        </span>
+      </div>
     </div>
   );
 }

@@ -91,15 +91,15 @@ export default function CalendarPage() {
 
       <div className="brutal-card p-4 md:p-10 bg-white">
         <div className="grid grid-cols-7 gap-2 md:gap-6 mb-4 md:mb-8">
-          {['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'].map(day => (
+          {['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'].map(day => (
             <div key={day} className="text-center font-mono font-black text-[10px] md:text-sm tracking-widest text-black">
               {day.substring(0, 1)}<span className="hidden md:inline">{day.substring(1)}</span>
             </div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-2 md:gap-6">
-          {/* Padding for first day of month */}
-          {Array.from({ length: monthStart.getDay() }).map((_, i) => (
+          {/* Padding for first day of month (Monday start) */}
+          {Array.from({ length: (monthStart.getDay() + 6) % 7 }).map((_, i) => (
             <div key={`empty-${i}`} className="h-24 md:h-32 rounded-2xl border-[2px] md:border-[3px] border-dashed border-gray-200" />
           ))}
 
@@ -120,10 +120,15 @@ export default function CalendarPage() {
                   {format(day, 'd')}
                 </span>
                 {log && (
-                  <div className="w-full text-left">
+                  <div className="w-full text-left space-y-1">
                     <span className={`text-[8px] md:text-[10px] font-black uppercase truncate block px-1 md:px-2 md:py-1 border-[1px] md:border-[2px] border-black rounded-md ${log.isWorkedHoliday ? 'bg-white text-black' : 'bg-white/70 text-black'}`}>
                       {profile ? profile.name : log.isWorkedHoliday ? 'FESTIVO' : log.type === 'worked' ? 'TRAB.' : log.type === 'holiday' ? 'FESTIVO' : 'LIBRE'}
                     </span>
+                    {log.extraHours > 0 && (
+                      <span className="text-[7px] md:text-[9px] font-black bg-black text-white px-1 rounded inline-block">
+                        +{log.extraHours}H
+                      </span>
+                    )}
                   </div>
                 )}
               </button>
@@ -154,13 +159,26 @@ function EditDayModal({ date, onClose }: { date: Date, onClose: () => void }) {
   const [isWorkedHoliday, setIsWorkedHoliday] = useState(existingLog?.isWorkedHoliday || false);
   const [profileId, setProfileId] = useState(existingLog?.profileId || profiles[0]?.id || '');
   const [notes, setNotes] = useState(existingLog?.notes || '');
+  const [extraHours, setExtraHours] = useState(existingLog?.extraHours || 0);
+  const [extraHoursRate, setExtraHoursRate] = useState(existingLog?.extraHoursRate || 0);
 
   const handleSave = () => {
+    // Si es tipo trabajo o festivo trabajado, necesitamos un perfil.
+    // Si no hay perfil pero hay horas extras, permitimos guardar como 'off' o 'holiday' (libre)
+    const needsProfile = type === 'worked' || (type === 'holiday' && isWorkedHoliday);
+    
+    if (needsProfile && !profileId && profiles.length > 0) {
+      alert("Por favor, selecciona un perfil profesional para registrar una jornada de trabajo.");
+      return;
+    }
+
     logDay(dateStr, {
       type,
-      profileId: (type === 'worked' || (type === 'holiday' && isWorkedHoliday)) ? profileId : undefined,
+      profileId: (needsProfile && profileId) ? profileId : undefined,
       notes,
-      isWorkedHoliday: type === 'holiday' ? isWorkedHoliday : false
+      isWorkedHoliday: type === 'holiday' ? isWorkedHoliday : false,
+      extraHours: Number(extraHours) || 0,
+      extraHoursRate: Number(extraHoursRate) || 0
     });
     onClose();
   };
@@ -189,6 +207,45 @@ function EditDayModal({ date, onClose }: { date: Date, onClose: () => void }) {
         </div>
 
         <div className="p-4 sm:p-8 space-y-6 flex-1 overflow-y-auto overflow-x-hidden min-h-0 pb-20 sm:pb-8">
+          {/* Horas Extras Section */}
+          <div className="brutal-card p-4 bg-[var(--color-electric-cyan)] border-[3px] border-black space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="bg-black text-white p-1 rounded-md shadow-brutal-xs">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+              <label className="font-mono text-xs font-black uppercase tracking-widest">Añadir Horas Extras</label>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="font-mono text-[10px] font-black uppercase mb-1 block">Nº Horas</label>
+                <input
+                  type="number"
+                  value={extraHours || ''}
+                  onChange={(e) => setExtraHours(Number(e.target.value))}
+                  placeholder="0"
+                  className="w-full brutal-input p-2 font-black text-sm"
+                />
+              </div>
+              <div>
+                <label className="font-mono text-[10px] font-black uppercase mb-1 block">Precio/Hora (€)</label>
+                <input
+                  type="number"
+                  value={extraHoursRate || ''}
+                  onChange={(e) => setExtraHoursRate(Number(e.target.value))}
+                  placeholder="0.00"
+                  className="w-full brutal-input p-2 font-black text-sm"
+                />
+              </div>
+            </div>
+            {extraHours > 0 && extraHoursRate > 0 && (
+              <div className="pt-2 border-t-2 border-black/20 flex justify-between items-center">
+                <span className="font-mono text-[10px] font-black uppercase">Subtotal Extras:</span>
+                <span className="font-black text-sm">{(extraHours * extraHoursRate).toFixed(2)} €</span>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-widest block mb-2 sm:mb-3">Tipo de Registro</label>
             <div className="flex rounded-2xl border-[3px] border-black overflow-hidden shadow-brutal-sm bg-black gap-[3px]">
@@ -264,9 +321,15 @@ function EditDayModal({ date, onClose }: { date: Date, onClose: () => void }) {
           )}
           <button onClick={handleSave} className={`brutal-btn bg-[var(--color-neon-fuchsia)] text-white px-4 sm:px-8 py-3 sm:py-4 w-full flex justify-between items-center shadow-brutal hover:shadow-none translate-x-[-4px] translate-y-[-4px] hover:translate-x-0 hover:translate-y-0 ${existingLog ? 'sm:flex-[2]' : ''}`}>
             <span className="font-black uppercase tracking-tighter text-sm sm:text-lg">Guardar <span className="hidden sm:inline">Registro</span></span>
-            {(type === 'worked' || (type === 'holiday' && isWorkedHoliday)) && profileId && (
-              <span className="bg-black/30 px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-black">{profiles.find(p => p.id === profileId)?.rate.toFixed(2)} €</span>
-            )}
+            <span className="bg-black/30 px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-black">
+              {(() => {
+                const basePrice = (type === 'worked' || (type === 'holiday' && isWorkedHoliday)) 
+                  ? (profiles.find(p => p.id === profileId)?.rate || 0) 
+                  : 0;
+                const extraPrice = extraHours * extraHoursRate;
+                return (basePrice + extraPrice).toFixed(2);
+              })()} €
+            </span>
           </button>
         </div>
 

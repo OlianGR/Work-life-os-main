@@ -14,6 +14,8 @@ export interface Log {
   isWorkedHoliday?: boolean;
   profileId?: string;
   notes?: string;
+  extraHours?: number;
+  extraHoursRate?: number;
 }
 
 /**
@@ -21,15 +23,16 @@ export interface Log {
  * Standard bonus is 20€ for Sundays or Worked Holidays, only if rate or plus is > 0.
  */
 export function calculateDailyIncome(log: Log, profile?: Profile): number {
-  if (!profile) return 0;
+  let baseIncome = 0;
   
   const isWorked = log.type === 'worked' || log.isWorkedHoliday;
-  if (!isWorked) return 0;
+  if (isWorked && profile) {
+    baseIncome = (profile.rate || 0) + (profile.positionPlus || 0);
+  }
 
-  const baseRate = profile.rate || 0;
-  const plus = profile.positionPlus || 0;
+  const extraIncome = (log.extraHours || 0) * (log.extraHoursRate || 0);
 
-  return baseRate + plus;
+  return baseIncome + extraIncome;
 }
 
 /**
