@@ -177,7 +177,7 @@ export default function Dashboard() {
         <div className="brutal-card p-6 lg:col-span-1">
           <h3 className="font-display font-bold text-xl mb-6">Mix de Ingresos</h3>
           <div className="space-y-6">
-            {profiles.map((profile: any) => {
+            {[...profiles].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((profile: any) => {
               let count = 0;
               const profileIncome = Object.values(logs).reduce((acc: number, log: any) => {
                 if ((log.type === 'worked' || log.isWorkedHoliday) && log.profileId === profile.id) {

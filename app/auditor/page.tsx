@@ -33,10 +33,12 @@ type AuditResult = {
     netTotal: number;
     offDaysCount: number;
     holidayDaysDetail: Array<{ date: string; profileName: string; notes?: string }>;
+    incentivesDetail: Array<{ date: string; profileName: string; amount: number }>;
+    positionPlusDetail: Array<{ date: string; profileName: string; amount: number }>;
   };
   extractedDetails?: {
     periodo: string;
-    empresa_cif: string;
+    empresa: string;
     total_devengado: number;
     concepts: {
       salario_base?: number;
@@ -64,6 +66,9 @@ export default function AuditorPage() {
   const [result, setResult] = useState<AuditResult | null>(null);
   const [showContractSettings, setShowContractSettings] = useState(false);
   const [showFestivosDetail, setShowFestivosDetail] = useState(false);
+  const [showIncentivesDetail, setShowIncentivesDetail] = useState(false);
+  const [showPositionPlusDetail, setShowPositionPlusDetail] = useState(false);
+  const [auditStatus, setAuditStatus] = useState<string>('');
 
   // Default date range: 25th of last month to 24th of current month
   const today = new Date();
@@ -128,6 +133,8 @@ export default function AuditorPage() {
         ['Salario Base', `${audit.breakdown.baseSalary.toFixed(2)}€`, `${(aiConcepts.salario_base || 0).toFixed(2)}€`, getStatus(audit.breakdown.baseSalary, aiConcepts.salario_base)],
         ['Antigüedad', `${audit.breakdown.seniority.toFixed(2)}€`, `${(aiConcepts.antiguedad || 0).toFixed(2)}€`, getStatus(audit.breakdown.seniority, aiConcepts.antiguedad)],
         ['Plus Puesto de Trabajo', `${audit.breakdown.positionPlus.toFixed(2)}€`, `${(aiConcepts.plus_puesto || 0).toFixed(2)}€`, getStatus(audit.breakdown.positionPlus, aiConcepts.plus_puesto)],
+        ['Plus Tóxico', `${audit.breakdown.toxicPlus.toFixed(2)}€`, `${(aiConcepts.plus_toxico || 0).toFixed(2)}€`, getStatus(audit.breakdown.toxicPlus, aiConcepts.plus_toxico)],
+        ['Plus Convenio', `${audit.breakdown.convenioPlus.toFixed(2)}€`, `${(aiConcepts.plus_convenio || 0).toFixed(2)}€`, getStatus(audit.breakdown.convenioPlus, aiConcepts.plus_convenio)],
         ['Horas Extraordinarias', `${audit.breakdown.extraHoursTotal.toFixed(2)}€`, `${(aiConcepts.horas_extras || 0).toFixed(2)}€`, getStatus(audit.breakdown.extraHoursTotal, aiConcepts.horas_extras)],
         ['Plus Festivos', `${audit.breakdown.holidayPlus.toFixed(2)}€`, `${(aiConcepts.plus_festivos || 0).toFixed(2)}€`, getStatus(audit.breakdown.holidayPlus, aiConcepts.plus_festivos)],
         ['Plus Transporte/Dist.', `${audit.breakdown.transportPlus.toFixed(2)}€`, `${(aiConcepts.plus_transporte || 0).toFixed(2)}€`, getStatus(audit.breakdown.transportPlus, aiConcepts.plus_transporte)],
@@ -195,22 +202,31 @@ export default function AuditorPage() {
     if (!file) return;
 
     setIsAuditing(true);
+    setAuditStatus('Procesando imagen...');
 
     try {
-      // Complex breakdown calculation
-      let incentives = 0;
-      let positionPlus = 0;
-      let holidayPlus = 0;
-      let postHolidayPlus = 0;
+      // 1. App Calculation: Sum variables from the selected range in calendar
+      let incentivesTotal = 0;
+      let positionPlusTotal = 0;
+      let holidayPlusTotal = 0;
+      let postHolidayPlusTotal = 0;
       let extraHoursTotal = 0;
       let offDaysCount = 0;
       const holidayDaysDetail: Array<{ date: string; profileName: string; notes?: string }> = [];
+      const incentivesDetail: Array<{ date: string; profileName: string; amount: number }> = [];
+      const positionPlusDetail: Array<{ date: string; profileName: string; amount: number }> = [];
 
+      // Validar fechas del rango
+      if (!startDate || !endDate) {
+        throw new Error('Por favor, selecciona un rango de fechas válido.');
+      }
+
+      // Filter and sum logs in the selected range
       Object.values(logs).forEach((log) => {
         if (log.date >= startDate && log.date <= endDate) {
-          // Extra hours calculation
+          // Extra hours: always sum the total euros
           if (log.extraHours && log.extraHoursRate) {
-            extraHoursTotal += log.extraHours * log.extraHoursRate;
+            extraHoursTotal += Number(log.extraHours) * Number(log.extraHoursRate);
           }
 
           const isWorkedHol = log.type === 'holiday' && log.isWorkedHoliday;
@@ -218,26 +234,38 @@ export default function AuditorPage() {
           if ((log.type === 'worked' || isWorkedHol) && log.profileId) {
             const profile = profiles.find(p => p.id === log.profileId);
             if (profile) {
-              incentives += profile.rate;
-              positionPlus += profile.positionPlus;
+              // User Requirement: "incentivos ... compararlo con todo el rango seleccionado ... con todas esas diferencias"
+              // We use profile.rate as the variable incentive/difference for that day
+              const pRate = Number(profile.rate || 0);
+              if (pRate > 0) {
+                incentivesTotal += pRate;
+                incentivesDetail.push({ date: log.date, profileName: profile.name, amount: pRate });
+              }
+              
+              // User Requirement: "plus puesto ... compararlo con el plus puesto que va sumando"
+              const pPlus = Number(profile.positionPlus || 0);
+              if (pPlus > 0) {
+                positionPlusTotal += pPlus;
+                positionPlusDetail.push({ date: log.date, profileName: profile.name, amount: pPlus });
+              }
 
               // Plus festivos (specifically marked worked holidays)
               if (isWorkedHol) {
-                const amount = contractDetails.holidayPlusAmount || 20;
-                holidayPlus += amount;
+                const amount = Number(contractDetails.holidayPlusAmount || 20);
+                holidayPlusTotal += amount;
                 holidayDaysDetail.push({
                   date: log.date,
                   profileName: profile.name,
-                  notes: log.notes + ` (+${amount}€)`
+                  notes: (log.notes || '') + ` (+${amount}€)`
                 });
               }
             }
 
-            // Plus post-festivo
+            // Plus post-festivo: Bonus for working the day after a holiday
             const prevDay = format(addDays(new Date(log.date), -1), 'yyyy-MM-dd');
             const prevLog = logs[prevDay];
             if (prevLog?.type === 'holiday' && !prevLog.isWorkedHoliday) {
-              postHolidayPlus += contractDetails.postHolidayPlus;
+              postHolidayPlusTotal += Number(contractDetails.postHolidayPlus || 0);
             }
           } else if (log.type === 'off') {
             offDaysCount++;
@@ -245,50 +273,124 @@ export default function AuditorPage() {
         }
       });
 
-      const grossTotal = contractDetails.baseSalary +
-        contractDetails.seniority +
-        contractDetails.toxicPlus +
-        contractDetails.convenioPlus +
-        incentives +
-        positionPlus +
-        holidayPlus +
-        postHolidayPlus +
-        extraHoursTotal +
-        contractDetails.transportPlus +
-        contractDetails.clothingPlus;
+      // 2. Base & Fixed Concepts: from Contract (Requirement: "compare with contract data")
+      const baseSalary = Number(contractDetails.baseSalary);
+      const seniority = Number(contractDetails.seniority);
+      const toxicPlus = Number(contractDetails.toxicPlus);
+      const convenioPlus = Number(contractDetails.convenioPlus);
+      const transportPlus = Number(contractDetails.transportPlus);
+      const clothingPlus = Number(contractDetails.clothingPlus);
 
-      const taxAmount = grossTotal * (contractDetails.taxRate / 100);
-      const socialSecurityAmount = grossTotal * (contractDetails.socialSecurityRate / 100);
+      const grossTotal = baseSalary +
+        seniority +
+        toxicPlus +
+        convenioPlus +
+        incentivesTotal +
+        positionPlusTotal +
+        holidayPlusTotal +
+        postHolidayPlusTotal +
+        extraHoursTotal +
+        transportPlus +
+        clothingPlus;
+
+      const taxAmount = grossTotal * (Number(contractDetails.taxRate) / 100);
+      const socialSecurityAmount = grossTotal * (Number(contractDetails.socialSecurityRate) / 100);
       const netTotal = grossTotal - taxAmount - socialSecurityAmount;
 
       const breakdown = {
-        baseSalary: contractDetails.baseSalary,
-        seniority: contractDetails.seniority,
-        toxicPlus: contractDetails.toxicPlus,
-        convenioPlus: contractDetails.convenioPlus,
-        incentives,
-        positionPlus,
-        holidayPlus,
-        postHolidayPlus,
+        baseSalary,
+        seniority,
+        toxicPlus,
+        convenioPlus,
+        incentives: incentivesTotal,
+        positionPlus: positionPlusTotal,
+        holidayPlus: holidayPlusTotal,
+        postHolidayPlus: postHolidayPlusTotal,
         extraHoursTotal,
-        transportPlus: contractDetails.transportPlus,
-        clothingPlus: contractDetails.clothingPlus,
+        transportPlus,
+        clothingPlus,
         grossTotal,
         netTotal,
         offDaysCount,
-        holidayDaysDetail
+        holidayDaysDetail: holidayDaysDetail.sort((a, b) => a.date.localeCompare(b.date)),
+        incentivesDetail: incentivesDetail.sort((a, b) => a.date.localeCompare(b.date)),
+        positionPlusDetail: positionPlusDetail.sort((a, b) => a.date.localeCompare(b.date))
       };
 
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
+      const processImage = async (file: File): Promise<string> => {
+        try {
+          let source: ImageBitmap | HTMLImageElement;
+          let urlToRevoke: string | null = null;
 
-      reader.onload = async () => {
-        const base64Data = (reader.result as string).split(',')[1];
+          // Usar createImageBitmap si está disponible (más eficiente en memoria)
+          if (typeof window.createImageBitmap === 'function') {
+            try {
+              source = await createImageBitmap(file);
+            } catch (e) {
+              console.warn("createImageBitmap falló, intentando fallback con URL.createObjectURL", e);
+              urlToRevoke = URL.createObjectURL(file);
+              source = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('El navegador no pudo cargar esta imagen.'));
+                img.src = urlToRevoke!;
+              });
+            }
+          } else {
+            // Fallback para navegadores antiguos
+            urlToRevoke = URL.createObjectURL(file);
+            source = await new Promise((resolve, reject) => {
+              const img = new Image();
+              img.onload = () => resolve(img);
+              img.onerror = () => reject(new Error('El navegador no pudo cargar esta imagen.'));
+              img.src = urlToRevoke!;
+            });
+          }
+
+          const canvas = document.createElement('canvas');
+          const MAX_DIMENSION = 1200; // Reducido para móviles (antes 1600)
+          let width = source.width;
+          let height = source.height;
+
+          if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+            const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+            width *= ratio;
+            height *= ratio;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('No se pudo inicializar el contexto de dibujo.');
+
+          ctx.drawImage(source, 0, 0, width, height);
+          
+          // Limpieza de memoria
+          if (source instanceof ImageBitmap) {
+            source.close();
+          }
+          if (urlToRevoke) {
+            URL.revokeObjectURL(urlToRevoke);
+          }
+
+          const base64 = canvas.toDataURL('image/jpeg', 0.7); // Calidad 0.7 para mayor velocidad
+          return base64.split(',')[1];
+        } catch (error: any) {
+          console.error("Error detallado en procesamiento de imagen:", error);
+          throw new Error('No se pudo procesar la imagen: ' + (error.message || 'Error de lectura'));
+        }
+      };
+
+      try {
+        const base64Data = await processImage(file);
+        setAuditStatus('Analizando nómina con IA...');
 
         // Obtener el token de sesión
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for mobile networks
 
         const response = await fetch('/api/audit', {
           method: 'POST',
@@ -299,12 +401,18 @@ export default function AuditorPage() {
           credentials: 'include',
           body: JSON.stringify({
             fileData: base64Data,
-            mimeType: file.type,
+            mimeType: 'image/jpeg',
             appTotal: netTotal
-          })
+          }),
+          signal: controller.signal
         });
 
-        if (!response.ok) throw new Error('Audit failed');
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `Error del servidor (${response.status}).`);
+        }
 
         const data = await response.json();
         setResult({
@@ -312,7 +420,9 @@ export default function AuditorPage() {
           breakdown
         });
         setIsAuditing(false);
-      };
+      } catch (err: any) {
+        throw err; // Re-throw to be caught by the outer catch
+      }
     } catch (error: any) {
       console.error(error);
       setResult({
@@ -326,7 +436,9 @@ export default function AuditorPage() {
           positionPlus: 0, holidayPlus: 0, postHolidayPlus: 0, extraHoursTotal: 0,
           transportPlus: 0, clothingPlus: 0, grossTotal: 0, netTotal: 0,
           offDaysCount: 0,
-          holidayDaysDetail: []
+          holidayDaysDetail: [],
+          incentivesDetail: [],
+          positionPlusDetail: []
         }
       });
       setIsAuditing(false);
@@ -685,12 +797,18 @@ export default function AuditorPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                        <DetailItem label="CIF EMPRESA" value={result.extractedDetails?.empresa_cif || 'Detectando...'} />
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <DetailItem label="EMPRESA" value={result.extractedDetails?.empresa || 'Detectando...'} />
                         <DetailItem label="PERIODO" value={result.extractedDetails?.periodo || 'Detectando...'} />
-                        <div className="col-span-2 md:col-span-1 border-l border-white/10 pl-4">
-                           <span className="text-gray-500 text-[8px] font-black uppercase tracking-widest block mb-1">BRUTO NÓMINA</span>
-                           <span className="text-3xl font-display font-black text-[var(--color-citrus-yellow)] tabular-nums">
+                        <div className="border-l border-white/10 pl-4">
+                           <span className="text-gray-500 text-[8px] font-black uppercase tracking-widest block mb-1">BRUTO (IA)</span>
+                           <span className="text-xl font-display font-black text-white tabular-nums">
+                             {(result.extractedDetails?.total_devengado || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
+                           </span>
+                        </div>
+                        <div className="border-l border-white/10 pl-4">
+                           <span className="text-gray-500 text-[8px] font-black uppercase tracking-widest block mb-1">NETO (IA)</span>
+                           <span className="text-xl font-display font-black text-[var(--color-citrus-yellow)] tabular-nums">
                              {result.payslipTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
                            </span>
                         </div>
@@ -737,13 +855,70 @@ export default function AuditorPage() {
 
                       {/* The Check / Rows */}
                       <div className="space-y-4 font-mono text-xs mb-10 z-10 relative italic">
-                         <Row label="Salario Base" value={result.breakdown.baseSalary} extracted={result.extractedDetails?.concepts?.salario_base} />
-                         <Row label="Antigüedad" value={result.breakdown.seniority} extracted={result.extractedDetails?.concepts?.antiguedad} />
-                         <Row label="Plus Tóxico" value={result.breakdown.toxicPlus} extracted={result.extractedDetails?.concepts?.plus_toxico} />
-                         <Row label="Plus Convenio" value={result.breakdown.convenioPlus} extracted={result.extractedDetails?.concepts?.plus_convenio} />
-                         <Row label="Incentivos x Perfil" value={result.breakdown.incentives} extracted={result.extractedDetails?.concepts?.incentivos} />
-                         <Row label="Plus Puesto" value={result.breakdown.positionPlus} extracted={result.extractedDetails?.concepts?.plus_puesto} />
-                         <Row label="Horas Extras" value={result.breakdown.extraHoursTotal} extracted={result.extractedDetails?.concepts?.horas_extras} />
+                          <Row label="Salario Base" value={result.breakdown.baseSalary} extracted={result.extractedDetails?.concepts?.salario_base} source="Contrato" />
+                          <Row label="Antigüedad" value={result.breakdown.seniority} extracted={result.extractedDetails?.concepts?.antiguedad} source="Contrato" />
+                          <Row label="Plus Tóxico" value={result.breakdown.toxicPlus} extracted={result.extractedDetails?.concepts?.plus_toxico} source="Contrato" />
+                          <Row label="Plus Convenio" value={result.breakdown.convenioPlus} extracted={result.extractedDetails?.concepts?.plus_convenio} source="Contrato" />
+                          <div className="relative group/incentives">
+                            <Row 
+                              label="Incentivos Acum." 
+                              value={result.breakdown.incentives} 
+                              extracted={result.extractedDetails?.concepts?.incentivos} 
+                              source="Calendario"
+                              isSpecial
+                              onClick={() => setShowIncentivesDetail(!showIncentivesDetail)}
+                              isOpen={showIncentivesDetail}
+                            />
+                            <AnimatePresence>
+                              {showIncentivesDetail && result.breakdown.incentivesDetail.length > 0 && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden bg-gray-100/50 border-x border-b border-gray-200 p-2 mt-1 space-y-1 mb-2 font-mono text-[9px]"
+                                >
+                                  {result.breakdown.incentivesDetail.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center opacity-60">
+                                      <span>{format(new Date(item.date), 'dd/MM')}</span>
+                                      <span className="font-bold truncate px-2">{item.profileName}</span>
+                                      <span className="font-black text-black">+{ item.amount.toFixed(2) }€</span>
+                                    </div>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+
+                          <div className="relative group/puesto">
+                            <Row 
+                              label="Plus Puesto Acum." 
+                              value={result.breakdown.positionPlus} 
+                              extracted={result.extractedDetails?.concepts?.plus_puesto} 
+                              source="Calendario"
+                              isSpecial
+                              onClick={() => setShowPositionPlusDetail(!showPositionPlusDetail)}
+                              isOpen={showPositionPlusDetail}
+                            />
+                            <AnimatePresence>
+                              {showPositionPlusDetail && result.breakdown.positionPlusDetail.length > 0 && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden bg-gray-100/50 border-x border-b border-gray-200 p-2 mt-1 space-y-1 mb-2 font-mono text-[9px]"
+                                >
+                                  {result.breakdown.positionPlusDetail.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center opacity-60">
+                                      <span>{format(new Date(item.date), 'dd/MM')}</span>
+                                      <span className="font-bold truncate px-2">{item.profileName}</span>
+                                      <span className="font-black text-black">+{ item.amount.toFixed(2) }€</span>
+                                    </div>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          <Row label="Horas Extras" value={result.breakdown.extraHoursTotal} extracted={result.extractedDetails?.concepts?.horas_extras} source="Calendario" />
                          <div className="relative group/festivos">
                            <Row
                              label="Plus Festivos"
@@ -772,8 +947,9 @@ export default function AuditorPage() {
                              )}
                            </AnimatePresence>
                          </div>
-                         <Row label="Pluses Conv./Vest." value={result.breakdown.transportPlus + result.breakdown.clothingPlus} extracted={(result.extractedDetails?.concepts?.plus_transporte || 0) + (result.extractedDetails?.concepts?.plus_vestuario || 0)} />
-                         <Row label="Post-Festivos" value={result.breakdown.postHolidayPlus} extracted={result.extractedDetails?.concepts?.plus_post_festivo} />
+                          <Row label="Plus Transporte" value={result.breakdown.transportPlus} extracted={result.extractedDetails?.concepts?.plus_transporte} source="Contrato" />
+                          <Row label="Plus Vestuario" value={result.breakdown.clothingPlus} extracted={result.extractedDetails?.concepts?.plus_vestuario} source="Contrato" />
+                          <Row label="Post-Festivos" value={result.breakdown.postHolidayPlus} extracted={result.extractedDetails?.concepts?.plus_post_festivo} source="Calendario" />
                          <div className="flex justify-between items-center py-1 opacity-60">
                             <span>Días Libres (Informativo)</span>
                             <span className="font-bold">{result.breakdown.offDaysCount} Días</span>
@@ -845,14 +1021,25 @@ export default function AuditorPage() {
 
 // Helper Components
 function ContractField({ label, value, onChange, unit }: { label: string, value: number, onChange: (v: number) => void, unit: string }) {
+  const [localValue, setLocalValue] = useState<string>(value.toString());
+
+  useEffect(() => {
+    setLocalValue(value.toString());
+  }, [value]);
+
+  const handleBlur = () => {
+    onChange(Number(localValue));
+  };
+
   return (
     <div className="flex flex-col gap-1.5 group">
       <label className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 group-focus-within:text-black transition-colors">{label}</label>
       <div className="relative">
         <input
           type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onBlur={handleBlur}
           className="brutal-input w-full pr-10 font-bold tabular-nums focus-ring"
         />
         <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-gray-300 pointer-events-none group-focus-within:text-black">{unit}</span>
@@ -884,30 +1071,39 @@ function ComparisonBox({ label, value, status, icon }: { label: string, value: n
   );
 }
 
-function Row({ label, value, extracted, isSpecial, onClick, isOpen }: { label: string, value: number, extracted?: number, isSpecial?: boolean, onClick?: () => void, isOpen?: boolean }) {
-  const hasDiff = extracted !== undefined && Math.abs(value - extracted) > 0.1;
+function Row({ label, value, extracted, isSpecial, onClick, isOpen, source }: { label: string, value: number, extracted?: number, isSpecial?: boolean, onClick?: () => void, isOpen?: boolean, source?: 'Contrato' | 'Calendario' }) {
+  const hasDiff = extracted !== undefined && Math.abs(value - extracted) > 0.5;
   
   return (
     <div
       onClick={onClick}
-      className={`flex justify-between items-center py-1 transition-colors ${
-        isSpecial ? 'cursor-pointer hover:bg-gray-50 p-1 -m-1 rounded-sm border-b border-dashed border-black/10' : ''
+      className={`flex justify-between items-center py-1.5 transition-colors border-b border-black/5 last:border-0 ${
+        isSpecial ? 'cursor-pointer hover:bg-gray-50' : ''
       }`}
     >
-      <div className="flex items-center gap-2">
-         <span className={`${isSpecial ? 'font-black' : 'text-gray-600'}`}>{label}</span>
-         {isSpecial && <PlusCircle className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-45 text-[var(--color-neon-fuchsia)]' : 'text-black'}`} />}
-         {hasDiff && <AlertTriangle className="w-3 h-3 text-[var(--color-neon-fuchsia)] animate-pulse" />}
+      <div className="flex flex-col">
+         <div className="flex items-center gap-2">
+           <span className={`${isSpecial ? 'font-black' : 'text-gray-800'}`}>{label}</span>
+           {source && <span className={`text-[7px] px-1 py-0 border border-black/20 font-black uppercase tracking-tighter ${source === 'Contrato' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>{source}</span>}
+           {isSpecial && <PlusCircle className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-45 text-[var(--color-neon-fuchsia)]' : 'text-black'}`} />}
+           {hasDiff && <AlertTriangle className="w-3 h-3 text-[var(--color-neon-fuchsia)] animate-pulse" />}
+         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {extracted !== undefined && (
-          <span className="text-[10px] text-gray-400 line-through opacity-50">
-            {extracted.toFixed(2)}€
-          </span>
+          <div className="flex flex-col items-end">
+            <span className="text-[8px] text-gray-400 font-black uppercase leading-none mb-0.5">Nómina</span>
+            <span className="text-[10px] text-gray-500 font-mono">
+              {extracted.toFixed(2)}€
+            </span>
+          </div>
         )}
-        <span className={`font-bold tabular-nums ${isSpecial ? 'underline decoration-black/10' : ''} ${hasDiff ? 'text-[var(--color-neon-fuchsia)]' : ''}`}>
-          {value.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
-        </span>
+        <div className="flex flex-col items-end min-w-[70px]">
+          <span className="text-[8px] text-gray-400 font-black uppercase leading-none mb-0.5">App</span>
+          <span className={`font-bold tabular-nums ${hasDiff ? 'text-[var(--color-neon-fuchsia)]' : 'text-black'}`}>
+            {value.toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
+          </span>
+        </div>
       </div>
     </div>
   );

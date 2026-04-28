@@ -159,6 +159,8 @@ export default function SettingsPage() {
     '#FFD93D',
   ];
 
+  const sortedProfiles = [...profiles].sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -176,16 +178,15 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-6">
-        {profiles.map((profile: ShiftProfile) => (
+        {sortedProfiles.map((profile: ShiftProfile) => (
           <div key={profile.id} className="brutal-card p-4 sm:p-6 flex flex-col md:flex-row gap-6 items-start md:items-center bg-white border-[3px] border-black">
             <div className="flex-1 space-y-4 w-full">
               <div className="flex flex-col md:grid md:grid-cols-3 md:gap-4">
                 <div className="flex-1">
                   <label className="font-mono text-[10px] font-bold uppercase tracking-widest block mb-1 text-gray-500">Nombre del Rol</label>
-                  <input
-                    type="text"
+                  <ProfileInput
                     value={profile.name}
-                    onChange={e => updateProfile(profile.id, { name: e.target.value })}
+                    onChange={v => updateProfile(profile.id, { name: v })}
                     className="w-full brutal-input font-bold"
                   />
                 </div>
@@ -193,10 +194,10 @@ export default function SettingsPage() {
                   <label className="font-mono text-[10px] font-bold uppercase tracking-widest block mb-1 text-gray-500">Incentivo/Tarifa</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-gray-400">€</span>
-                    <input
+                    <ProfileInput
                       type="number"
                       value={profile.rate}
-                      onChange={e => updateProfile(profile.id, { rate: Number(e.target.value) })}
+                      onChange={v => updateProfile(profile.id, { rate: Number(v) })}
                       className="w-full brutal-input pl-8 font-mono font-bold"
                     />
                   </div>
@@ -205,10 +206,10 @@ export default function SettingsPage() {
                   <label className="font-mono text-[10px] font-bold uppercase tracking-widest block mb-1 text-gray-500">Plus Puesto</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-gray-400">€</span>
-                    <input
+                    <ProfileInput
                       type="number"
                       value={profile.positionPlus}
-                      onChange={e => updateProfile(profile.id, { positionPlus: Number(e.target.value) })}
+                      onChange={v => updateProfile(profile.id, { positionPlus: Number(v) })}
                       className="w-full brutal-input pl-8 font-mono font-bold"
                     />
                   </div>
@@ -312,28 +313,25 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="brutal-card p-6 bg-[var(--color-citrus-yellow)] flex justify-between items-center">
-          <div>
-            <h3 className="font-display font-bold text-xl">Límite Legal</h3>
-            <p className="font-mono text-sm text-gray-700">Días laborables máximos permitidos por año.</p>
-          </div>
-          <input
-            type="number"
+          <SettingsField
+            label="Límite Legal"
             value={legalLimit}
-            onChange={(e) => setLegalLimit(Number(e.target.value))}
+            onChange={(v) => setLegalLimit(v)}
+            unit="Días"
             className="w-24 font-display font-bold text-3xl bg-white px-2 py-2 rounded-2xl border-[3px] border-black shadow-brutal-sm text-center"
           />
-        </div>
 
         <div className="brutal-card p-6 bg-[var(--color-neon-fuchsia)] text-white flex justify-between items-center">
           <div>
             <h3 className="font-display font-bold text-xl">Límite de Festivos</h3>
             <p className="font-mono text-sm opacity-80">Total de festivos nacionales a rastrear.</p>
           </div>
-          <input
-            type="number"
+          <SettingsField
+            label="Límite de Festivos"
             value={holidayLimit}
-            onChange={(e) => setHolidayLimit(Number(e.target.value))}
+            onChange={(v) => setHolidayLimit(v)}
+            unit="Días"
+            hideLabel
             className="w-24 font-display font-bold text-3xl bg-white text-black px-2 py-2 rounded-2xl border-[3px] border-black shadow-brutal-sm text-center"
           />
         </div>
@@ -452,7 +450,7 @@ export default function SettingsPage() {
           ) : (
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center border-brutal border-black shadow-brutal-sm">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center border-[3px] border-black shadow-brutal-sm">
                   <ShieldAlert className="w-8 h-8 text-[var(--color-neon-fuchsia)]" />
                 </div>
                 <div className="text-left">
@@ -589,19 +587,63 @@ export default function SettingsPage() {
 }
 
 // Helper Components
-function SettingsField({ label, value, onChange, unit }: { label: string, value: number, onChange: (v: number) => void, unit: string }) {
+function SettingsField({ label, value, onChange, unit, className, hideLabel }: { label: string, value: number, onChange: (v: number) => void, unit: string, className?: string, hideLabel?: boolean }) {
+  const [localValue, setLocalValue] = useState<string>(value.toString());
+
+  useEffect(() => {
+    setLocalValue(value.toString());
+  }, [value]);
+
+  const handleBlur = () => {
+    const num = parseFloat(localValue);
+    if (!isNaN(num) && num !== value) {
+      onChange(num);
+    } else {
+      setLocalValue(value.toString());
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-1.5 group">
-      <label className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 group-focus-within:text-black transition-colors">{label}</label>
+    <div className={`flex flex-col gap-1.5 group ${hideLabel ? '' : ''}`}>
+      {!hideLabel && <label className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 group-focus-within:text-black transition-colors">{label}</label>}
       <div className="relative">
         <input
           type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="brutal-input w-full pr-10 font-bold tabular-nums focus-ring"
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onBlur={handleBlur}
+          className={className || "brutal-input w-full pr-10 font-bold tabular-nums focus-ring"}
         />
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-gray-300 pointer-events-none group-focus-within:text-black">{unit}</span>
+        {!hideLabel && <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-gray-300 pointer-events-none group-focus-within:text-black">{unit}</span>}
       </div>
     </div>
   );
+}
+
+function ProfileInput({ value, onChange, className, type = 'text' }: { value: string | number, onChange: (v: string) => void, className: string, type?: 'text' | 'number' }) {
+  const [localValue, setLocalValue] = useState<string>(value.toString());
+
+  useEffect(() => {
+    setLocalValue(value.toString());
+  }, [value]);
+
+  const handleBlur = () => {
+    if (localValue !== value.toString()) {
+      onChange(localValue);
+    }
+  };
+
+  return (
+    <input
+      type={type}
+      value={localValue}
+      onChange={e => setLocalValue(e.target.value)}
+      onBlur={handleBlur}
+      className={className}
+    />
+  );
+}
+
+function ContractField({ label, value, onChange, unit, className, hideLabel }: { label: string, value: number, onChange: (v: number) => void, unit: string, className?: string, hideLabel?: boolean }) {
+  return <SettingsField label={label} value={value} onChange={onChange} unit={unit} className={className} hideLabel={hideLabel} />;
 }

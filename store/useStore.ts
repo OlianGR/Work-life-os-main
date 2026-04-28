@@ -208,14 +208,15 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateProfile: async (id, updated) => {
+    const updatePayload: any = {};
+    if (updated.name !== undefined) updatePayload.name = updated.name;
+    if (updated.rate !== undefined) updatePayload.rate = updated.rate;
+    if (updated.positionPlus !== undefined) updatePayload.position_plus = updated.positionPlus;
+    if (updated.color !== undefined) updatePayload.color = updated.color;
+
     const { error } = await supabase
       .from('shift_profiles')
-      .update({
-        name: updated.name,
-        rate: updated.rate,
-        position_plus: updated.positionPlus,
-        color: updated.color
-      })
+      .update(updatePayload)
       .eq('id', id);
 
     if (!error) {

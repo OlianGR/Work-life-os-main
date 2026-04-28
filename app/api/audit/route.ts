@@ -4,28 +4,37 @@ import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Audit API - Handles payroll image processing using Groq Vision
+ * implements dual-validation: JWT (Header) with Cookie fallback
+ */
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get('authorization');
     let user = null;
 
+    // 1. First validation attempt: JWT Authorization Header
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      console.log('[Audit] Authorization header found, using createClient');
       const token = authHeader.substring(7);
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         { auth: { persistSession: false } }
       );
-      const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
-      if (error) {
-        console.warn('[Audit] Error from getUser with token:', error);
+      
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (!authError && authUser) {
+        console.log('[Audit] Authenticated via JWT Header:', authUser.email);
+        user = authUser;
+      } else {
+        console.warn('[Audit] JWT validation failed:', authError?.message);
       }
-      user = authUser;
     }
 
+    // 2. Second validation attempt: Cookie Fallback (for browser direct calls)
     if (!user) {
-      console.log('[Audit] Falling back to cookies...');
+      console.log('[Audit] Falling back to cookie validation...');
       const cookieStore = await cookies();
       const supabaseServer = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,40 +45,42 @@ export async function POST(req: Request) {
               return cookieStore.get(name)?.value;
             },
             set(name: string, value: string, options: any) {
-              cookieStore.set({ name, value, ...options })
+              try {
+                cookieStore.set({ name, value, ...options });
+              } catch (e) {
+                // Ignore cookie sets in route handlers if not allowed
+              }
             },
             remove(name: string, options: any) {
-              cookieStore.delete({ name, ...options })
+              try {
+                cookieStore.delete({ name, ...options });
+              } catch (e) {
+                // Ignore cookie deletes in route handlers
+              }
             },
           },
         }
       );
 
-      const { data: { session }, error: sessionError } = await supabaseServer.auth.getSession();
-      user = session?.user || null;
+      // Using getUser() instead of getSession() for higher security (verifies with DB)
+      const { data: { user: authUser }, error: userError } = await supabaseServer.auth.getUser();
       
-      if (!user) {
-        console.warn('[Audit] getSession failed:', sessionError);
-        const { data: { user: authUser }, error: userError } = await supabaseServer.auth.getUser();
-        user = authUser || null;
-        if (!user) {
-          console.error('[Audit] getUser also failed:', userError);
-          return NextResponse.json({ 
-            error: 'No autorizado', 
-            message: 'No se pudo encontrar una sesión activa. Por favor, intenta cerrar sesión y volver a entrar.' 
-          }, { status: 401 });
-        }
+      if (!userError && authUser) {
+        console.log('[Audit] Authenticated via Cookies:', authUser.email);
+        user = authUser;
+      } else {
+        console.error('[Audit] Cookie validation failed:', userError?.message);
+        return NextResponse.json({ 
+          error: 'No autorizado', 
+          message: 'No se pudo encontrar una sesión activa. Por favor, intenta cerrar sesión y volver a entrar.' 
+        }, { status: 401 });
       }
     }
 
     const body = await req.json();
     const { fileData, mimeType, appTotal } = body;
 
-    console.log('[Audit] Incoming request:', {
-      mimeType,
-      appTotal,
-      dataLength: fileData?.length
-    });
+    console.log('[Audit] Processing audit request for:', user.email);
 
     if (!fileData || !mimeType) {
       return NextResponse.json({ error: 'Faltan datos del archivo o tipo mime' }, { status: 400 });
@@ -85,27 +96,49 @@ export async function POST(req: Request) {
     const cleanBase64 = fileData.includes(',') ? fileData.split(',')[1] : fileData;
     const imageUrl = `data:${mimeType};base64,${cleanBase64}`;
 
-    const prompt = `Analiza esta nómina española con extrema precisión. Extrae los siguientes datos en un objeto JSON puro:
-    - periodo: Mes y año (ej. "Marzo 2026")
-    - empresa_cif: CIF de la empresa (formato A12345678)
-    - total_devengado: Total bruto antes de impuestos
-    - payslipTotal: El NETO A PERCIBIR (líquido total)
-    - concepts: Un objeto con los importes de cada concepto (pon 0 si no se encuentra):
-        - salario_base: Salario base
-        - antiguedad: Antigüedad / Plus antigüedad
-        - plus_puesto: Plus puesto de trabajo / Plus responsabilidad
-        - horas_extras: Importe total de horas extraordinarias
-        - plus_festivos: Pluses por festivos o domingos
-        - plus_post_festivo: Pluses por día después de festivo
-        - plus_toxico: Plus penosidad/toxicidad/peligrosidad
-        - plus_convenio: Plus convenio
-        - plus_transporte: Plus transporte / Plus distancia
-        - plus_vestuario: Plus vestuario / Plus herramientas
-        - incentivos: Otros incentivos, gratificaciones o bonus
-    
-    IMPORTANTE: Responde solo con el JSON. Asegúrate de que payslipTotal sea el importe final neto que el trabajador recibe.`;
+    // Prompts and logic remain similar but with improved model selection and parsing
+    const prompt = `Analiza esta imagen de una nómina española y extrae los importes brutos de los conceptos indicados.
+Devuelve ÚNICAMENTE un objeto JSON con esta estructura exacta:
+{
+  "concepts": {
+    "salario_base": number,
+    "antiguedad": number,
+    "plus_toxico": number,
+    "plus_convenio": number,
+    "incentivos": number,
+    "plus_puesto": number,
+    "horas_extras": number,
+    "plus_festivos": number,
+    "plus_transporte": number,
+    "plus_vestuario": number,
+    "plus_post_festivo": number
+  },
+  "payslipTotal": number,
+  "total_devengado": number,
+  "metadata": {
+    "month": string,
+    "year": string,
+    "company": string
+  }
+}
 
-    console.log('[Audit] Sending to Groq...');
+MAPEADO:
+- salario_base: Salario/Sueldo Base.
+- antiguedad: Antigüedad, Trienios, Plus Permanencia.
+- plus_toxico: Tóxico, Penosidad, Peligrosidad.
+- incentivos: Bonus, Variable, Diferencia, Complemento Salarial (SUMA TODOS LOS VARIABLES).
+- plus_puesto: Plus Puesto, Responsabilidad, Función.
+- plus_festivos: Festivos, Nocturnidad/Festividad.
+- plus_transporte: Transporte, Distancia, KM.
+- plus_vestuario: Vestuario, Ropa.
+- plus_post_festivo: Relevo, Post-Festivo.
+
+REGLAS:
+1. Concepto no presente = 0.
+2. Números decimales con punto (ej: 1250.50).
+3. Suma conceptos repetidos de la misma categoría.
+4. Ignora retenciones e impuestos, solo devengo bruto.
+5. payslipTotal = Líquido a Percibir (Neto final).`;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [
@@ -126,11 +159,9 @@ export async function POST(req: Request) {
     });
 
     const content = chatCompletion.choices[0]?.message?.content || '{}';
-    console.log('[Audit] AI Content:', content);
-
+    
     let extractedData;
     try {
-      // Clean possible markdown artifacts if model ignored response_format
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : content;
       extractedData = JSON.parse(jsonStr);
@@ -139,7 +170,6 @@ export async function POST(req: Request) {
       throw new Error('La IA no devolvió un formato válido. Inténtalo de nuevo con una imagen más clara.');
     }
 
-    // Normalized extraction
     const payslipTotal = Number(extractedData.payslipTotal || 0);
     const difference = payslipTotal - appTotal;
     const status = Math.abs(difference) < 1.0 ? 'MATCH' : 'DISCREPANCY';
@@ -153,8 +183,8 @@ export async function POST(req: Request) {
         ? '✅ ¡Auditoría correcta! Los importes coinciden.' 
         : `⚠️ Discrepancia detectada: Nómina ${payslipTotal.toFixed(2)}€ vs App ${appTotal.toFixed(2)}€`,
       extractedDetails: {
-        periodo: extractedData.periodo || 'No detectado',
-        empresa_cif: extractedData.empresa_cif || 'No detectado',
+        periodo: extractedData.metadata?.month ? `${extractedData.metadata.month} ${extractedData.metadata.year || ''}` : 'No detectado',
+        empresa: extractedData.metadata?.company || 'No detectada',
         total_devengado: extractedData.total_devengado || 0,
         concepts: extractedData.concepts || {}
       }
@@ -168,3 +198,4 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 }
+

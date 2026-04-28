@@ -282,7 +282,7 @@ function EditDayModal({ date, onClose }: { date: Date, onClose: () => void }) {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <label className="font-mono text-xs font-black uppercase tracking-widest block mb-3">Seleccionar Rol Profesional</label>
               <div className="grid grid-cols-1 gap-3">
-                {profiles.map(p => (
+                {[...profiles].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                   <button
                     key={p.id}
                     onClick={() => setProfileId(p.id)}
